@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Switzerland Kids Explorer &middot; 瑞士亲子探索</title>
+  <meta name="description" content="Family-friendly venues across Switzerland. Interactive multilingual map for families with kids. 瑞士亲子友好场地互动地图。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧒</text></svg>">
+  <link rel="canonical" href="https://xinaliu2134.github.io/switzerland-kids-explorer/">
+  <meta property="og:title" content="Switzerland Kids Explorer &middot; 瑞士亲子探索">
+  <meta property="og:description" content="Family-friendly venues across Switzerland. Interactive multilingual map for families with kids. 瑞士亲子友好场地互动地图。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://xinaliu2134.github.io/switzerland-kids-explorer/">
+  <meta property="og:site_name" content="Switzerland Kids Explorer">
+  <meta name="twitter:card" content="summary">
+  <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" as="script">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <style>
+    :root {
+      --bg:           #F2F4F8;
+      --surface:      #FFFFFF;
+      --primary:      #E05A1E;
+      --primary-light:#FFF0E9;
+      --primary-dark: #B84515;
+      --navy:         #1A2B4A;
+      --teal:         #0EA5A0;
+      --text:         #1A2B4A;
+      --text-secondary: #5A6A84;
+      --text-muted:   #9AA5B8;
+      --border:       #CBD5E1;
+      --border-light: #E2E8F0;
+      --shadow-sm:    0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+      --shadow-md:    0 4px 12px rgba(26,43,74,.16), 0 0 0 1px rgba(26,43,74,.06);
+      --shadow-lg:    0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+      --radius-sm:    6px;
+      --radius-md:    12px;
+      --radius-lg:    18px;
+      --radius-xl:    24px;
+      font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    .cross-nav { background: #111827; padding: 6px 20px; display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 12px; font-weight: 600; flex-shrink: 0; z-index: 101; flex-wrap: wrap; }
+    .cross-nav a { color: rgba(255,255,255,.6); text-decoration: none; transition: color .15s; }
+    .cross-nav a:hover { color: #fff; }
+    .cross-nav .active-site { color: #fff; border-bottom: 2px solid var(--primary); padding-bottom: 1px; }
+    header { background: var(--navy); padding: 0 20px; height: 60px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; z-index: 100; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 36px; height: 36px; background: var(--primary); border-radius: 10px; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .logo-text-en { font-size: 13px; font-weight: 700; color: #FFFFFF; letter-spacing: .5px; }
+    .logo-text-zh { font-size: 11px; font-weight: 400; color: rgba(255,255,255,.55); }
+    .header-search { flex: 1; max-width: 480px; position: relative; }
+    .header-search input { width: 100%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.2); border-radius: var(--radius-md); padding: 8px 40px 8px 36px; font-size: 14px; color: #fff; outline: none; transition: background .2s, border-color .2s; }
+    .header-search input::placeholder { color: rgba(255,255,255,.5); }
+    .header-search input:focus { background: rgba(255,255,255,.18); border-color: var(--primary); box-shadow: 0 0 0 3px rgba(224,90,30,.25); }
+    .header-search .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,.45); font-size: 15px; pointer-events: none; }
+    .header-search .clear-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: rgba(255,255,255,.4); font-size: 16px; padding: 2px 4px; display: none; transition: color .15s; }
+    .header-search .clear-btn:hover { color: rgba(255,255,255,.8); }
+    .header-search input:not(:placeholder-shown) ~ .clear-btn { display: block; }
+    .autocomplete { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 240px; overflow-y: auto; z-index: 200; display: none; }
+    .autocomplete.open { display: block; }
+    .autocomplete-item { padding: 10px 14px; cursor: pointer; font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 8px; transition: background .12s; }
+    .autocomplete-item:hover, .autocomplete-item.focused { background: var(--primary-light); }
+    .autocomplete-item .region-type { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+    .header-spacer { flex: 1; }
+    .lang-toggle { display: flex; background: rgba(255,255,255,.1); border-radius: 8px; padding: 3px; gap: 2px; }
+    .lang-btn { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; transition: background .15s, color .15s; }
+    .lang-btn.active { background: var(--primary); color: #fff; }
+    .filter-bar { background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 20px; height: 48px; display: flex; align-items: center; gap: 8px; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-label { font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+    .filter-chip { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; transition: all .15s; user-select: none; }
+    .filter-chip:hover { border-color: var(--primary); color: var(--primary); }
+    .filter-chip.active { color: #fff; border-color: transparent; }
+    .filter-chip.no-data { opacity: 0.45; cursor: default; pointer-events: none; }
+    .main { flex: 1; display: grid; grid-template-columns: 380px 1fr; overflow: hidden; }
+    .sidebar { background: var(--bg); display: flex; flex-direction: column; overflow: hidden; border-right: 2px solid var(--border); }
+    .sidebar-header { padding: 16px 20px 12px; background: var(--surface); border-bottom: 2px solid var(--border-light); flex-shrink: 0; }
+    .result-count { font-size: 13px; color: var(--text-secondary); }
+    .result-count strong { color: var(--text); }
+    .venue-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; contain: layout style; will-change: scroll-position; }
+    .venue-list::-webkit-scrollbar { width: 4px; }
+    .venue-list::-webkit-scrollbar-track { background: transparent; }
+    .venue-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .venue-card { background: var(--surface); border-radius: var(--radius-md); padding: 14px; border: none; cursor: pointer; transition: box-shadow .15s, transform .12s; box-shadow: var(--shadow-sm); contain: content; position: relative; }
+    .venue-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .venue-card.active { box-shadow: 0 0 0 2px var(--primary), var(--shadow-md); }
+    .venue-card-top { display: flex; align-items: flex-start; gap: 11px; }
+    .venue-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
+    .venue-info { flex: 1; min-width: 0; }
+    .venue-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .venue-name-zh { font-size: 12px; color: var(--text-secondary); margin-top: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+    .venue-meta { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .venue-tag { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+    .venue-address { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .venue-address svg { flex-shrink: 0; }
+    .venue-actions { margin-top: 10px; display: flex; gap: 6px; }
+    .btn-website { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--primary); background: var(--primary-light); border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; text-decoration: none; transition: background .15s; }
+    .btn-website:hover { background: #fde0cd; }
+    .btn-map { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--text-secondary); background: var(--bg); border: 2px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer; transition: background .15s, border-color .15s; }
+    .btn-map:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-nav { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #fff; background: #4285F4; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; text-decoration: none; transition: background .15s; }
+    .btn-nav:hover { background: #3367D6; }
+    .load-more-btn { margin: 8px 0 16px; width: 100%; padding: 10px; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-md); font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all .15s; }
+    .load-more-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .skeleton { background: linear-gradient(90deg, var(--bg) 25%, #f0f2f5 50%, var(--bg) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; gap: 12px; }
+    .empty-state-icon { font-size: 48px; }
+    .empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text); }
+    .empty-state p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .empty-suggestions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+    .empty-suggestion { background: var(--primary-light); color: var(--primary); border: none; border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s; }
+    .empty-suggestion:hover { background: #fde0cd; }
+    #map { width: 100%; height: 100%; z-index: 1; }
+    .leaflet-popup-content-wrapper { border-radius: var(--radius-md) !important; box-shadow: var(--shadow-lg) !important; border: 2px solid var(--border); padding: 0 !important; overflow: hidden; }
+    .leaflet-popup-content { margin: 0 !important; width: 260px !important; }
+    .leaflet-popup-tip-container { margin-top: -1px; }
+    .popup-content { padding: 14px; }
+    .popup-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .popup-icon { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+    .popup-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .popup-name-zh { font-size: 12px; color: var(--text-secondary); }
+    .popup-address { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
+    .popup-website { display: block; text-align: center; background: var(--primary); color: white; border-radius: 8px; padding: 7px; font-size: 12px; font-weight: 600; text-decoration: none; transition: background .15s; }
+    .popup-website:hover { background: var(--primary-dark); }
+    .map-marker { width: 34px; height: 34px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .2s; }
+    .map-marker:hover { transform: rotate(-45deg) scale(1.3); z-index: 1000 !important; }
+    .map-marker-inner { transform: rotate(45deg); font-size: 14px; line-height: 1; }
+    .map-overlay { position: absolute; inset: 0; background: rgba(242,244,248,.85); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 500; gap: 12px; transition: opacity .3s; }
+    .map-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .map-overlay p { font-size: 14px; color: var(--text-secondary); }
+    .map-wrapper { position: relative; }
+    .toast { position: fixed; top: 76px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--navy); color: #fff; padding: 10px 20px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    .scroll-top-btn { position: absolute; bottom: 18px; right: 18px; width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; border: none; box-shadow: var(--shadow-md); cursor: pointer; font-size: 18px; display: none; align-items: center; justify-content: center; z-index: 50; transition: background .15s, transform .15s; }
+    .scroll-top-btn:hover { background: var(--primary-dark); transform: scale(1.1); }
+    .scroll-top-btn.visible { display: flex; }
+    .venue-detail-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .venue-detail-row a { color: var(--primary); text-decoration: none; }
+    .venue-detail-row a:hover { text-decoration: underline; }
+    .category-summary { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .category-summary-chip { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 10px; }
+    .filter-chip-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10px; font-weight: 700; padding: 0 5px; line-height: 1; }
+    .filter-chip:not(.active) .filter-chip-count { background: var(--bg); color: var(--text-secondary); }
+    .filter-chip.active .filter-chip-count { background: rgba(255,255,255,.25); color: #fff; }
+    .venue-fav-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.5; transition: opacity .15s, transform .15s; line-height: 1; padding: 2px; z-index: 2; }
+    .venue-fav-btn:hover { opacity: 0.8; }
+    .venue-fav-btn.favorited { opacity: 1; }
+    .venue-fav-btn.bounce { animation: favBounce .35s ease; }
+    @keyframes favBounce { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+    .venue-distance { font-size: 11px; color: var(--teal); font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+    .venue-rating { font-size: 11px; color: #B8860B; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; }
+    .venue-rating .rating-stars { color: #DAA520; letter-spacing: -1px; }
+    .venue-rating .rating-num { color: #B8860B; }
+    .venue-rating .rating-count { color: var(--text-muted); font-weight: 400; }
+    .detail-rating { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; padding: 8px 12px; background: #FFFBF0; border: 1px solid #F0E6CC; border-radius: var(--radius-sm); }
+    .detail-rating-stars { font-size: 18px; color: #DAA520; letter-spacing: -1px; }
+    .detail-rating-num { font-size: 16px; font-weight: 700; color: #B8860B; }
+    .detail-rating-count { font-size: 12px; color: var(--text-muted); }
+    .detail-rating-sep { color: var(--text-muted); font-size: 14px; }
+    .sort-control { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
+    .sort-control select { font-size: 11px; font-weight: 600; color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 6px; padding: 3px 6px; background: var(--surface); cursor: pointer; outline: none; }
+    .sort-control select:focus { border-color: var(--primary); }
+    .sort-control label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .nearme-btn { background: none; border: none; color: rgba(255,255,255,.5); font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: color .15s, background .15s; flex-shrink: 0; }
+    .nearme-btn:hover { color: #fff; background: rgba(255,255,255,.1); }
+    .nearme-btn.active { color: #4FC3F7; }
+    .autocomplete-item .venue-result-detail { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+    .autocomplete-item .venue-emoji { font-size: 16px; flex-shrink: 0; }
+    .autocomplete-section-label { padding: 6px 14px 2px; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    @media (max-width: 768px) { .header-search { max-width: 100%; } .logo-text { display: none; } }
+    .chat-fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #F39C12); color: #fff; border: none; box-shadow: 0 4px 16px rgba(224,90,30,.4); cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 9000; transition: transform .2s, box-shadow .2s; }
+    .chat-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(224,90,30,.5); }
+    .chat-fab.hidden { display: none; }
+    .chat-panel { position: fixed; bottom: 24px; right: 24px; width: 380px; max-height: 520px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: 0 12px 48px rgba(26,43,74,.25); z-index: 9001; display: none; flex-direction: column; overflow: hidden; }
+    .chat-panel.open { display: flex; }
+    .chat-header { background: var(--navy); padding: 14px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .chat-header-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), #F39C12); border-radius: 50%; display: grid; place-items: center; font-size: 16px; }
+    .chat-header-text { flex: 1; color: #fff; font-size: 14px; font-weight: 700; }
+    .chat-header-sub { color: rgba(255,255,255,.5); font-size: 11px; font-weight: 400; }
+    .chat-close { background: none; border: none; color: rgba(255,255,255,.5); font-size: 20px; cursor: pointer; padding: 4px; transition: color .15s; }
+    .chat-close:hover { color: #fff; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 200px; max-height: 340px; }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .chat-msg { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.5; word-break: break-word; }
+    .chat-msg.bot { background: var(--bg); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-msg.user { background: var(--primary); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .chat-msg.bot a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    .chat-msg.bot a:hover { text-decoration: underline; }
+    .chat-venue-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; margin: 3px 2px; font-size: 12px; cursor: pointer; transition: border-color .15s, background .15s; }
+    .chat-venue-chip:hover { border-color: var(--primary); background: var(--primary-light); }
+    .chat-typing { align-self: flex-start; padding: 10px 14px; background: var(--bg); border-radius: 16px; border-bottom-left-radius: 4px; display: flex; gap: 4px; }
+    .chat-typing span { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: typingBounce .8s ease-in-out infinite; }
+    .chat-typing span:nth-child(2) { animation-delay: .15s; }
+    .chat-typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes typingBounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+    .chat-quick-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 8px; }
+    .chat-quick-btn { background: var(--primary-light); color: var(--primary); border: none; border-radius: 16px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .chat-quick-btn:hover { background: #fde0cd; }
+    .chat-input-area { padding: 12px 16px; border-top: 2px solid var(--border-light); display: flex; gap: 8px; flex-shrink: 0; }
+    .chat-input { flex: 1; border: 2px solid var(--border); border-radius: 20px; padding: 8px 14px; font-size: 13px; color: var(--text); outline: none; font-family: inherit; transition: border-color .2s; }
+    .chat-input:focus { border-color: var(--primary); }
+    .chat-input::placeholder { color: var(--text-muted); }
+    .chat-send { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; border: none; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s; }
+    .chat-send:hover { background: var(--primary-dark); }
+    @media (max-width: 768px) { .chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 12px; max-height: 70vh; } .chat-fab { bottom: 16px; right: 16px; width: 50px; height: 50px; font-size: 22px; } }
+    @media (max-width: 768px) {
+      .main { grid-template-columns: 1fr; grid-template-rows: 1fr; position: relative; }
+      .map-wrapper { order: -1; grid-row: 1; grid-column: 1; }
+      .sidebar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 800; border-radius: 16px 16px 0 0; border-right: none; border-top: none; box-shadow: 0 -4px 24px rgba(26,43,74,.18); transition: transform 0.3s cubic-bezier(.4,0,.2,1); max-height: 90dvh; will-change: transform; }
+      .bottom-sheet-handle { display: flex; justify-content: center; padding: 10px 0 4px; cursor: grab; flex-shrink: 0; }
+      .bottom-sheet-handle::after { content: ''; width: 36px; height: 4px; background: var(--border); border-radius: 2px; }
+      .bottom-sheet-handle:active { cursor: grabbing; }
+    }
+    @media (min-width: 769px) { .bottom-sheet-handle { display: none; } }
+    .venue-detail-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; background: var(--surface); box-shadow: -4px 0 24px rgba(26,43,74,.18); z-index: 900; transform: translateX(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; overflow: hidden; }
+    .venue-detail-panel.open { transform: translateX(0); }
+    .detail-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 2px solid var(--border-light); flex-shrink: 0; }
+    .detail-panel-close { background: none; border: none; cursor: pointer; font-size: 22px; color: var(--text-secondary); padding: 4px 8px; border-radius: 8px; transition: background .15s; }
+    .detail-panel-close:hover { background: var(--bg); }
+    .detail-panel-body { flex: 1; overflow-y: auto; padding: 20px; }
+    .detail-venue-icon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 28px; margin-bottom: 16px; }
+    .detail-venue-name { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+    .detail-venue-name-zh { font-size: 15px; color: var(--text-secondary); margin-bottom: 12px; }
+    .detail-category-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 16px; }
+    .detail-info-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; color: var(--text); }
+    .detail-info-row .detail-icon { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; padding-top: 1px; }
+    .detail-info-row a { color: var(--primary); text-decoration: none; }
+    .detail-info-row a:hover { text-decoration: underline; }
+    .detail-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .detail-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: background .15s, transform .1s; }
+    .detail-btn:hover { transform: translateY(-1px); }
+    .detail-btn-website { background: var(--primary); color: #fff; }
+    .detail-btn-website:hover { background: var(--primary-dark); }
+    .detail-btn-navigate { background: #4285F4; color: #fff; }
+    .detail-btn-navigate:hover { background: #3367D6; }
+    .detail-btn-favorite { background: var(--bg); color: var(--text); border: 2px solid var(--border); }
+    .detail-btn-favorite:hover { border-color: var(--primary); color: var(--primary); }
+    .detail-btn-favorite.favorited { background: #FEE2E2; color: #DC2626; border-color: #FECACA; }
+    @media (max-width: 768px) { .venue-detail-panel { width: 100%; top: auto; bottom: 0; max-height: 90dvh; border-radius: 16px 16px 0 0; transform: translateY(100%); } .venue-detail-panel.open { transform: translateY(0); } }
+    .age-filter-group { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: 4px; padding-left: 8px; border-left: 2px solid var(--border-light); }
+    .age-pill { display: flex; align-items: center; gap: 3px; padding: 4px 10px; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); cursor: pointer; font-size: 11px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; transition: all .15s; user-select: none; }
+    .age-pill:hover { border-color: var(--primary); color: var(--primary); }
+    .age-pill.active { background: #7C3AED; color: #fff; border-color: #7C3AED; }
+    .weather-badge { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.8); background: rgba(255,255,255,.1); border-radius: 8px; padding: 4px 10px; flex-shrink: 0; white-space: nowrap; }
+    .weather-banner { background: linear-gradient(135deg, #1e3a5f, #2d5a8e); color: #fff; padding: 8px 20px; display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 500; flex-shrink: 0; z-index: 99; }
+    .weather-banner-text { flex: 1; }
+    .weather-banner-btn { background: rgba(255,255,255,.2); color: #fff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; white-space: nowrap; }
+    .weather-banner-btn:hover { background: rgba(255,255,255,.3); }
+    .weather-banner-close { background: none; border: none; color: rgba(255,255,255,.6); font-size: 18px; cursor: pointer; padding: 2px 6px; transition: color .15s; }
+    .weather-banner-close:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+<div class="cross-nav">
+  <a href="https://xinaliu2134.github.io/nana-hub/holland-kids-explorer.html">Holland 🇳🇱</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/belgium-kids-explorer/">Belgium 🇧🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/germany-kids-explorer/">Germany 🇩🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/france-kids-explorer/">France 🇫🇷</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/portugal-kids-explorer/">Portugal 🇵🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/spain-kids-explorer/">Spain 🇪🇸</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/italy-kids-explorer/">Italy 🇮🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/uk-kids-explorer/">UK 🇬🇧</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <span class="active-site">Switzerland 🇨🇭</span>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/austria-kids-explorer/">Austria 🇦🇹</a>
+</div>
+
+<header>
+  <a class="logo" href="#" onclick="event.preventDefault(); resetHome();">
+    <div class="logo-icon">🧒</div>
+    <div class="logo-text">
+      <span class="logo-text-en">Switzerland Kids Explorer</span>
+      <span class="logo-text-zh">瑞士亲子探索</span>
+    </div>
+  </a>
+  <div class="header-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search venue or region... 搜索场地或地区..." autocomplete="off">
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">&#10005;</button>
+    <div class="autocomplete" id="autocomplete"></div>
+  </div>
+  <button class="nearme-btn" id="nearmeBtn" onclick="activateNearMe()" title="Near Me 我附近">📍</button>
+  <div class="weather-badge" id="weatherBadge" style="display:none;"></div>
+  <div class="header-spacer"></div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" data-lang="de" onclick="setLang('de')">DE</button>
+    <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
+  </div>
+</header>
+
+<div class="weather-banner" id="weatherBanner" style="display:none;">
+  <span class="weather-banner-text" id="weatherBannerText"></span>
+  <button class="weather-banner-btn" id="weatherBannerBtn" onclick="filterIndoorWeather()"></button>
+  <button class="weather-banner-close" onclick="dismissWeatherBanner()">&times;</button>
+</div>
+
+<div class="filter-bar" id="filterBar">
+  <span class="filter-label" id="filterLabel">Filter:</span>
+</div>
+
+<div class="main">
+  <div class="toast" id="toast"></div>
+  <aside class="sidebar" id="sidebarSheet" style="position:relative;">
+    <div class="bottom-sheet-handle" id="bottomSheetHandle"></div>
+    <div class="sidebar-header">
+      <div class="result-count" id="resultCount" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span id="resultCountText">Search a region to discover kids venues</span>
+        <div class="sort-control" id="sortControl" style="display:none;">
+          <label for="sortSelect">Sort:</label>
+          <select id="sortSelect" onchange="applySortOrder(this.value)">
+            <option value="default">Default</option>
+            <option value="rating">Top rated</option>
+            <option value="name">A-Z</option>
+          </select>
+        </div>
+      </div>
+      <div class="category-summary" id="categorySummary"></div>
+    </div>
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state-icon">🗺️</div>
+      <h3 id="emptyTitle">Explore Switzerland</h3>
+      <p id="emptyDesc">Search a canton or city above to find museums, playgrounds, zoos, theme parks and more for kids.</p>
+      <div class="empty-suggestions">
+        <button class="empty-suggestion" onclick="searchRegion('Zürich')">Zürich</button>
+        <button class="empty-suggestion" onclick="searchRegion('Bern')">Bern</button>
+        <button class="empty-suggestion" onclick="searchRegion('Geneva')">Geneva</button>
+        <button class="empty-suggestion" onclick="searchRegion('Basel')">Basel</button>
+        <button class="empty-suggestion" onclick="searchRegion('Lucerne')">Lucerne</button>
+        <button class="empty-suggestion" onclick="searchRegion('Interlaken')">Interlaken</button>
+      </div>
+    </div>
+    <div class="venue-list" id="venueList" style="display:none"></div>
+    <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">&#8593;</button>
+  </aside>
+  <div class="map-wrapper">
+    <div id="map"></div>
+    <div class="map-overlay hidden" id="mapOverlay">
+      <div class="spinner"></div>
+      <p id="loadingText">Loading venues...</p>
+      <p id="loadingHint" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p>
+    </div>
+  </div>
+</div>
+
+<div class="venue-detail-panel" id="venueDetailPanel">
+  <div class="detail-panel-header">
+    <span style="font-weight:700;font-size:15px;" id="detailPanelTitle">Venue Details</span>
+    <button class="detail-panel-close" onclick="closeDetailPanel()">&times;</button>
+  </div>
+  <div class="detail-panel-body" id="detailPanelBody"></div>
+</div>
+
+<button class="chat-fab" id="chatFab" onclick="toggleChat(true)" title="AI Assistant">🧸</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-icon">🧸</div>
+    <div>
+      <div class="chat-header-text">Kids Explorer AI</div>
+      <div class="chat-header-sub" id="chatSubtitle">智能亲子出行助手</div>
+    </div>
+    <button class="chat-close" onclick="toggleChat(false)">&#10005;</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-quick-actions" id="chatQuickActions"></div>
+  <div class="chat-input-area">
+    <input class="chat-input" id="chatInput" placeholder="描述你的需求... e.g. 我在Zürich，孩子3岁，想去室内玩" autocomplete="off">
+    <button class="chat-send" id="chatSend" onclick="handleChatSend()">&#10148;</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
+<style>
+  .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background: rgba(224,90,30,.15) !important; }
+  .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background: var(--primary) !important; color: #fff !important; font-weight: 700 !important; font-family: 'Inter', system-ui, sans-serif !important; }
+</style>
+<script>
+const LANG = { current: 'en' };
+const T = {
+  en: {
+    filterLabel:'Category:',allLabel:'All',searching:'Searching... (may take 10-40s)',loadingVenues:'Loading venues...',loadingHint:'Querying OpenStreetMap, usually 10-40s',
+    found:(n,r)=>`<strong>${n}</strong> venues in <strong>${r}</strong>`,notFound:'No venues found. Try a different region.',
+    emptyTitle:'Explore Switzerland',emptyDesc:'Search a canton or city above to find museums, playgrounds, zoos, theme parks and more for kids.',
+    noWebsite:'No website',website:'🔗 Official Website',navigate:'🧭 Navigate',flyTo:'📍 Show on map',loadMore:'Load more',
+    regionNotFound:'Region not found. Try a Swiss city or canton name.',searchPlaceholder:'Search venue or region... e.g. Technorama, Zürich',
+    resultLabel:'Search a region to discover kids venues',favoritesLabel:'Favorites',nearMe:'Near Me',nearMeSearching:'Getting your location...',
+    nearMePermDenied:'Location access denied. Enable it in browser settings.',nearMeError:'Could not get your location. Please try again.',
+    weatherBannerText:'Rainy? Try indoor activities!',weatherBannerBtn:'Show indoor venues',searchRegionFirst:'Search a region first',
+    searchRegionFirstDesc:c=>`Type a city or canton in the search bar above, then filter by "${c}"`,browseCategory:c=>`Search a region to browse ${c}`,
+    browseCategoryDesc:'Type a city or canton above - results will be filtered to this category.',noInRegion:(c,r)=>`No ${c} in ${r}`,
+    tryOtherCategory:'Try a different category or search another region.',venuesSection:'Venues',regionsSection:'Regions',nearMeLocationType:'Location',
+    featuredRegion:'Featured Switzerland Venues',allCountry:'All Switzerland',allCountryCat:c=>`${c} - All Switzerland`,yourLocation:'Your location',
+    sortedByDistance:'Sorted by distance',showingIndoor:'Showing indoor venues',venueDetails:'Venue Details',visitWebsite:'Visit Website',
+    navigateTo:'Navigate',favorited:'Favorited',addFavorite:'Add to Favorites',
+  },
+  zh: {
+    filterLabel:'种类：',allLabel:'全部',searching:'搜索中... (通常需要10-40秒)',loadingVenues:'正在加载场地...',loadingHint:'正在查询 OpenStreetMap，通常需要 10-40 秒',
+    found:(n,r)=>`<strong>${r}</strong> 共找到 <strong>${n}</strong> 个亲子场地`,notFound:'未找到相关场地，请尝试其他地区。',
+    emptyTitle:'探索瑞士亲子场地',emptyDesc:'在上方搜索州或城市，找到博物馆、游乐场、动物园、主题公园等亲子活动场所。',
+    noWebsite:'暂无官网',website:'🔗 官方网站',navigate:'🧭 导航',flyTo:'📍 在地图上显示',loadMore:'加载更多',
+    regionNotFound:'未找到该地区，请输入瑞士城市或州名称。',searchPlaceholder:'搜索场地或地区... 如 Technorama、Zürich',
+    resultLabel:'搜索地区以发现亲子场地',favoritesLabel:'收藏',nearMe:'我附近',nearMeSearching:'正在获取位置...',
+    nearMePermDenied:'位置访问被拒绝，请在浏览器设置中允许。',nearMeError:'无法获取位置，请重试。',
+    weatherBannerText:'下雨天？试试室内活动！',weatherBannerBtn:'查看室内场地',searchRegionFirst:'请先搜索地区',
+    searchRegionFirstDesc:c=>`在上方搜索框输入城市或州，再按「${c}」筛选`,browseCategory:c=>`搜索地区，查看全部${c}`,
+    browseCategoryDesc:'在上方搜索框输入城市或州，立即筛选该种类',noInRegion:(c,r)=>`${r} 暂无${c}`,
+    tryOtherCategory:'试试其他分类，或搜索其他地区。',venuesSection:'场地',regionsSection:'地区',nearMeLocationType:'定位',
+    featuredRegion:'瑞士精选场地',allCountry:'瑞士全境',allCountryCat:c=>`${c} - 瑞士全境`,yourLocation:'你的位置',
+    sortedByDistance:'已按距离排序',showingIndoor:'已筛选室内活动场地',venueDetails:'场地详情',visitWebsite:'访问官方网站',
+    navigateTo:'导航前往',favorited:'已收藏',addFavorite:'收藏',
+  },
+  de: {
+    filterLabel:'Kategorie:',allLabel:'Alle',searching:'Suche läuft... (10-40s)',loadingVenues:'Orte werden geladen...',loadingHint:'OpenStreetMap wird abgefragt, normalerweise 10-40s',
+    found:(n,r)=>`<strong>${n}</strong> Orte in <strong>${r}</strong>`,notFound:'Keine Orte gefunden. Versuchen Sie eine andere Region.',
+    emptyTitle:'Schweiz entdecken',emptyDesc:'Suchen Sie oben nach einem Kanton oder einer Stadt, um Museen, Spielplätze, Zoos, Freizeitparks und mehr für Kinder zu finden.',
+    noWebsite:'Keine Website',website:'🔗 Offizielle Website',navigate:'🧭 Navigation',flyTo:'📍 Auf Karte zeigen',loadMore:'Mehr laden',
+    regionNotFound:'Region nicht gefunden. Versuchen Sie einen Schweizer Stadt- oder Kantonnamen.',searchPlaceholder:'Ort oder Region suchen... z.B. Technorama, Zürich',
+    resultLabel:'Suchen Sie eine Region, um Kinderorte zu entdecken',favoritesLabel:'Favoriten',nearMe:'In der Nähe',nearMeSearching:'Standort wird ermittelt...',
+    nearMePermDenied:'Standortzugriff verweigert. Aktivieren Sie ihn in den Browsereinstellungen.',nearMeError:'Standort konnte nicht ermittelt werden.',
+    weatherBannerText:'Regnet es? Versuchen Sie Innenaktivitäten!',weatherBannerBtn:'Innenorte anzeigen',searchRegionFirst:'Zuerst eine Region suchen',
+    searchRegionFirstDesc:c=>`Geben Sie oben eine Stadt oder einen Kanton ein, dann filtern Sie nach „${c}"`,browseCategory:c=>`Suchen Sie eine Region, um ${c} zu finden`,
+    browseCategoryDesc:'Geben Sie oben eine Stadt oder einen Kanton ein.',noInRegion:(c,r)=>`Keine ${c} in ${r}`,
+    tryOtherCategory:'Versuchen Sie eine andere Kategorie oder suchen Sie eine andere Region.',venuesSection:'Orte',regionsSection:'Regionen',nearMeLocationType:'Standort',
+    featuredRegion:'Ausgewählte Orte in der Schweiz',allCountry:'Ganze Schweiz',allCountryCat:c=>`${c} - Ganze Schweiz`,yourLocation:'Ihr Standort',
+    sortedByDistance:'Nach Entfernung sortiert',showingIndoor:'Innenorte werden angezeigt',venueDetails:'Ortsdetails',visitWebsite:'Website besuchen',
+    navigateTo:'Navigation',favorited:'Favorisiert',addFavorite:'Zu Favoriten',
+  },
+  fr: {
+    filterLabel:'Catégorie :',allLabel:'Tous',searching:'Recherche en cours... (10-40s)',loadingVenues:'Chargement des lieux...',loadingHint:'Interrogation OpenStreetMap, 10-40s environ',
+    found:(n,r)=>`<strong>${n}</strong> lieux à <strong>${r}</strong>`,notFound:'Aucun lieu trouvé. Essayez une autre région.',
+    emptyTitle:'Explorer la Suisse',emptyDesc:'Recherchez un canton ou une ville ci-dessus pour trouver des musées, aires de jeux, zoos et parcs pour enfants.',
+    noWebsite:'Pas de site web',website:'🔗 Site officiel',navigate:'🧭 Naviguer',flyTo:'📍 Voir sur la carte',loadMore:'Charger plus',
+    regionNotFound:'Région non trouvée. Essayez un nom de ville ou canton suisse.',searchPlaceholder:'Chercher un lieu ou une région... ex. Technorama, Genève',
+    resultLabel:'Recherchez une région pour découvrir des lieux pour enfants',favoritesLabel:'Favoris',nearMe:'Près de moi',nearMeSearching:'Localisation en cours...',
+    nearMePermDenied:'Accès à la localisation refusé. Activez-le dans les paramètres.',nearMeError:'Impossible de vous localiser. Réessayez.',
+    weatherBannerText:'Il pleut ? Essayez les activités en intérieur !',weatherBannerBtn:'Voir les lieux intérieurs',searchRegionFirst:'Cherchez une région d\'abord',
+    searchRegionFirstDesc:c=>`Tapez une ville ou un canton, puis filtrez par « ${c} »`,browseCategory:c=>`Cherchez une région pour voir ${c}`,
+    browseCategoryDesc:'Tapez une ville ou un canton ci-dessus.',noInRegion:(c,r)=>`Pas de ${c} à ${r}`,
+    tryOtherCategory:'Essayez une autre catégorie ou une autre région.',venuesSection:'Lieux',regionsSection:'Régions',nearMeLocationType:'Position',
+    featuredRegion:'Lieux en vedette en Suisse',allCountry:'Toute la Suisse',allCountryCat:c=>`${c} - Toute la Suisse`,yourLocation:'Votre position',
+    sortedByDistance:'Trié par distance',showingIndoor:'Lieux intérieurs affichés',venueDetails:'Détails du lieu',visitWebsite:'Visiter le site',
+    navigateTo:'Naviguer',favorited:'Favori',addFavorite:'Ajouter aux favoris',
+  }
+};
+
+const CATEGORIES = [
+  { id:'museum',emoji:'🏛️',color:'#4ECDC4',bg:'#E8FAF8',en:'Museum',zh:'博物馆',de:'Museum',fr:'Musée',tags:{tourism:['museum','gallery']}},
+  { id:'aquarium',emoji:'🐠',color:'#0077B6',bg:'#E0F4FF',en:'Aquarium',zh:'水族馆',de:'Aquarium',fr:'Aquarium',tags:{tourism:['aquarium']}},
+  { id:'zoo',emoji:'🦁',color:'#82B74B',bg:'#EEF7E6',en:'Zoo',zh:'动物园',de:'Zoo',fr:'Zoo',tags:{tourism:['zoo']}},
+  { id:'children_farm',emoji:'🐑',color:'#A0C878',bg:'#F0F7E6',en:"Children's Farm",zh:'儿童农场',de:'Kinderbauernhof',fr:'Ferme pour enfants',tags:{tourism:['children_farm']}},
+  { id:'theme_park',emoji:'🎡',color:'#E05A1E',bg:'#FFF0E9',en:'Theme Park',zh:'主题公园',de:'Freizeitpark',fr:'Parc d\'attractions',tags:{tourism:['theme_park'],leisure:['water_park','amusement_arcade']}},
+  { id:'indoor_playground',emoji:'🏠',color:'#FF6B35',bg:'#FFF0E9',en:'Indoor Playground',zh:'室内游乐场',de:'Indoorspielplatz',fr:'Aire de jeux intérieure',tags:{leisure:['indoor_playground']}},
+  { id:'playground',emoji:'🛝',color:'#F7DC6F',bg:'#FEFCE8',en:'Playground',zh:'游乐场',de:'Spielplatz',fr:'Aire de jeux',tags:{leisure:['playground']}},
+  { id:'beach',emoji:'🏖️',color:'#0EA5A0',bg:'#E0F7F6',en:'Beach / Lake',zh:'湖滩',de:'Strand / See',fr:'Plage / Lac',tags:{natural:['beach']}},
+  { id:'nature',emoji:'🌳',color:'#27AE60',bg:'#E8F8EE',en:'Nature & Park',zh:'自然公园',de:'Natur & Park',fr:'Nature & Parc',tags:{leisure:['nature_reserve','park','miniature_golf','marina']}},
+  { id:'historic',emoji:'🏰',color:'#8B6914',bg:'#F5EDD5',en:'Historic',zh:'历史古迹',de:'Historisch',fr:'Historique',tags:{historic:['castle','monument','fort','ruins','windmill','ship']}},
+  { id:'sports',emoji:'⛸️',color:'#6C5CE7',bg:'#F0EEFF',en:'Sports',zh:'运动场',de:'Sport',fr:'Sports',tags:{leisure:['ice_rink','swimming_pool','sports_centre']}},
+  { id:'theatre',emoji:'🎭',color:'#E84393',bg:'#FEE9F4',en:'Theatre & Cinema',zh:'剧院影院',de:'Theater & Kino',fr:'Théâtre & Cinéma',tags:{amenity:['theatre','cinema','arts_centre']}},
+  { id:'visitor',emoji:'🔭',color:'#0369A1',bg:'#E0F2FE',en:'Visitor Centre',zh:'游客中心',de:'Besucherzentrum',fr:'Centre visiteurs',tags:{tourism:['visitor_centre']}},
+  { id:'attraction',emoji:'⭐',color:'#F39C12',bg:'#FEF5E7',en:'Attraction',zh:'景点',de:'Attraktion',fr:'Attraction',tags:{tourism:['attraction']}},
+  { id:'chinese_restaurant',emoji:'🥡',color:'#E74C3C',bg:'#FADBD8',en:'Chinese Restaurant',zh:'中餐厅',de:'Chinesisches Restaurant',fr:'Restaurant chinois',tags:{amenity:['chinese_restaurant']}},
+  { id:'buffet',emoji:'🍱',color:'#8E44AD',bg:'#F4ECF7',en:'Buffet / All-You-Can-Eat',zh:'自助餐',de:'Buffet',fr:'Buffet à volonté',tags:{amenity:['buffet_restaurant']}},
+];
+
+const CH_REGIONS = [
+  {name:'Zürich',nameZh:'苏黎世',type:'city'},{name:'Bern',nameZh:'伯尔尼',type:'city'},{name:'Geneva',nameZh:'日内瓦',type:'city'},
+  {name:'Basel',nameZh:'巴塞尔',type:'city'},{name:'Lausanne',nameZh:'洛桑',type:'city'},{name:'Lucerne',nameZh:'卢塞恩',type:'city'},
+  {name:'Interlaken',nameZh:'因特拉肯',type:'city'},{name:'Zermatt',nameZh:'采尔马特',type:'city'},{name:'St. Moritz',nameZh:'圣莫里茨',type:'city'},
+  {name:'Montreux',nameZh:'蒙特勒',type:'city'},{name:'Lugano',nameZh:'卢加诺',type:'city'},{name:'Davos',nameZh:'达沃斯',type:'city'},
+  {name:'Grindelwald',nameZh:'格林德瓦',type:'city'},{name:'Thun',nameZh:'图恩',type:'city'},{name:'Winterthur',nameZh:'温特图尔',type:'city'},
+  {name:'Kanton Zürich',type:'province'},{name:'Kanton Bern',type:'province'},{name:'Kanton Luzern',type:'province'},
+  {name:'Kanton Uri',type:'province'},{name:'Kanton Schwyz',type:'province'},{name:'Kanton Obwalden',type:'province'},
+  {name:'Kanton Nidwalden',type:'province'},{name:'Kanton Glarus',type:'province'},{name:'Kanton Zug',type:'province'},
+  {name:'Kanton Fribourg',type:'province'},{name:'Kanton Solothurn',type:'province'},{name:'Kanton Basel-Stadt',type:'province'},
+  {name:'Kanton Basel-Landschaft',type:'province'},{name:'Kanton Schaffhausen',type:'province'},{name:'Kanton Appenzell Ausserrhoden',type:'province'},
+  {name:'Kanton Appenzell Innerrhoden',type:'province'},{name:'Kanton St. Gallen',type:'province'},{name:'Kanton Graubünden',type:'province'},
+  {name:'Kanton Aargau',type:'province'},{name:'Kanton Thurgau',type:'province'},{name:'Kanton Ticino',type:'province'},
+  {name:'Kanton Vaud',type:'province'},{name:'Kanton Valais',type:'province'},{name:'Kanton Neuchâtel',type:'province'},
+  {name:'Kanton Genève',type:'province'},{name:'Kanton Jura',type:'province'},
+];
+
+// Due to the enormous size needed (300+ venues), we'll define STATIC_CH_VENUES inline.
+// The JavaScript engine below follows the exact same pattern as the Germany template.
+
+const STATIC_CH_VENUES = [
+  // THEME PARKS (~10)
+  {type:'node',id:1,lat:46.3500,lon:6.8580,tags:{nameZh:'瑞士蒸汽公园',name:'Swiss Vapeur Parc',tourism:'theme_park',website:'https://www.swissvapeur.ch','addr:city':'Le Bouveret',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.5',reviews:'3842'}},
+  {type:'node',id:2,lat:47.5483,lon:8.8317,tags:{nameZh:'康尼乐园',name:'Conny-Land',tourism:'theme_park',website:'https://www.connyland.ch','addr:city':'Lipperswil',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.0',reviews:'5218'}},
+  {type:'node',id:3,lat:47.2500,lon:8.7200,tags:{nameZh:'阿尔帕玛雷水上乐园',name:'Alpamare',tourism:'theme_park',website:'https://www.alpamare.ch','addr:city':'Pfäffikon SZ',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'8421'}},
+  {type:'node',id:4,lat:46.3480,lon:6.8560,tags:{nameZh:'水上乐园Le Bouveret',name:'Aquaparc Le Bouveret',tourism:'theme_park',website:'https://www.aquaparc.ch','addr:city':'Le Bouveret',opening_hours:'Mo-Su 10:00-18:00',rating:'4.1',reviews:'6842'}},
+  {type:'node',id:5,lat:47.0472,lon:8.3094,tags:{nameZh:'瑞士交通博物馆乐园',name:'Swiss Museum of Transport Playground',tourism:'theme_park',website:'https://www.verkehrshaus.ch','addr:city':'Lucerne',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'18247'}},
+  {type:'node',id:6,lat:46.9333,lon:7.2500,tags:{nameZh:'伯尔尼古尔腾游乐园',name:'Gurten Park Bern',tourism:'theme_park','addr:city':'Bern',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  {type:'node',id:7,lat:47.5000,lon:8.7500,tags:{nameZh:'瓦尔特动物园游乐区',name:'Walter Zoo Spielpark',tourism:'theme_park',website:'https://www.walterzoo.ch','addr:city':'Gossau SG',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'4218'}},
+  {type:'node',id:8,lat:46.8167,lon:9.8500,tags:{nameZh:'达沃斯冒险公园',name:'Adventure Park Davos',tourism:'theme_park','addr:city':'Davos',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  {type:'node',id:9,lat:47.3800,lon:8.0500,tags:{nameZh:'瑞士迷宫公园',name:'Labyrinth Adventure Evionnaz',tourism:'theme_park',website:'https://www.labyrintheaventure.ch','addr:city':'Evionnaz',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.3',reviews:'2847'}},
+  {type:'node',id:10,lat:46.4667,lon:6.8500,tags:{nameZh:'瑞士缆车乐园',name:'Swiss Mountain Coaster',tourism:'theme_park','addr:city':'Leysin',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+
+  // ZOOS (~10)
+  {type:'node',id:20,lat:47.3850,lon:8.5744,tags:{nameZh:'苏黎世动物园',name:'Zoo Zürich',tourism:'zoo',website:'https://www.zoo.ch','addr:city':'Zürich',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'28431'}},
+  {type:'node',id:21,lat:46.9500,lon:7.4400,tags:{nameZh:'伯尔尼动物公园',name:'Tierpark Bern Dählhölzli',tourism:'zoo',website:'https://www.tierpark-bern.ch','addr:city':'Bern',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'8924'}},
+  {type:'node',id:22,lat:47.5475,lon:7.5789,tags:{nameZh:'巴塞尔动物园',name:'Zoo Basel',tourism:'zoo',website:'https://www.zoobasel.ch','addr:city':'Basel',opening_hours:'Mo-Su 08:00-18:00',rating:'4.5',reviews:'21436'}},
+  {type:'node',id:23,lat:46.5250,lon:6.6333,tags:{nameZh:'洛桑水族馆',name:'Aquatis Lausanne',tourism:'aquarium',website:'https://www.aquatis.ch','addr:city':'Lausanne',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'5842'}},
+  {type:'node',id:24,lat:46.9900,lon:7.1400,tags:{nameZh:'蝴蝶馆',name:'Papiliorama',tourism:'zoo',website:'https://www.papiliorama.ch','addr:city':'Kerzers',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'6218'}},
+  {type:'node',id:25,lat:47.5500,lon:9.2200,tags:{nameZh:'瓦尔特动物园',name:'Walter Zoo',tourism:'zoo',website:'https://www.walterzoo.ch','addr:city':'Gossau SG',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'4218'}},
+  {type:'node',id:26,lat:46.0100,lon:8.9600,tags:{nameZh:'卢加诺自然博物馆',name:'Museo Cantonale di Storia Naturale',tourism:'museum','addr:city':'Lugano',opening_hours:'Tu-Su 10:00-17:00'}},
+  {type:'node',id:27,lat:47.4200,lon:9.3700,tags:{nameZh:'圣加伦野生动物公园',name:'Wildpark Peter und Paul',tourism:'zoo','addr:city':'St. Gallen',opening_hours:'Mo-Su 24h',rating:'4.5',reviews:'2847'}},
+  {type:'node',id:28,lat:46.2000,lon:6.1500,tags:{nameZh:'日内瓦自然历史博物馆',name:'Muséum d\'histoire naturelle Genève',tourism:'museum',website:'https://www.ville-ge.ch/mhng','addr:city':'Geneva',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'7218'}},
+  {type:'node',id:29,lat:46.8400,lon:8.0600,tags:{nameZh:'冰川花园',name:'Gletschergarten Luzern',tourism:'museum',website:'https://www.gletschergarten.ch','addr:city':'Lucerne',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'4218'}},
+
+  // MUSEUMS (~25)
+  {type:'node',id:40,lat:47.0520,lon:8.3103,tags:{nameZh:'瑞士交通博物馆',name:'Swiss Museum of Transport',tourism:'museum',website:'https://www.verkehrshaus.ch','addr:city':'Lucerne',opening_hours:'Mo-Su 10:00-17:00',rating:'4.7',reviews:'28431'}},
+  {type:'node',id:41,lat:47.4970,lon:8.7225,tags:{nameZh:'瑞士科学中心',name:'Technorama',tourism:'museum',website:'https://www.technorama.ch','addr:city':'Winterthur',opening_hours:'Tu-Su 10:00-17:00',rating:'4.6',reviews:'12847'}},
+  {type:'node',id:42,lat:46.2339,lon:6.0556,tags:{nameZh:'欧洲核子研究中心',name:'CERN Science Gateway',tourism:'museum',website:'https://www.home.cern','addr:city':'Geneva',opening_hours:'Tu-Su 09:00-17:00',rating:'4.7',reviews:'8924'}},
+  {type:'node',id:43,lat:46.4614,lon:6.8428,tags:{nameZh:'雀巢食品博物馆',name:'Alimentarium',tourism:'museum',website:'https://www.alimentarium.org','addr:city':'Vevey',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'5218'}},
+  {type:'node',id:44,lat:46.5081,lon:6.6342,tags:{nameZh:'奥林匹克博物馆',name:'Olympic Museum',tourism:'museum',website:'https://www.olympics.com/museum','addr:city':'Lausanne',opening_hours:'Tu-Su 09:00-18:00',rating:'4.5',reviews:'12847'}},
+  {type:'node',id:45,lat:46.4650,lon:6.8200,tags:{nameZh:'卓别林世界',name:'Chaplin\'s World',tourism:'museum',website:'https://www.chaplinsworld.com','addr:city':'Corsier-sur-Vevey',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'9247'}},
+  {type:'node',id:46,lat:47.3835,lon:8.5306,tags:{nameZh:'FIFA博物馆',name:'FIFA Museum',tourism:'museum',website:'https://www.fifamuseum.com','addr:city':'Zürich',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'7842'}},
+  {type:'node',id:47,lat:47.3694,lon:8.5390,tags:{nameZh:'苏黎世国家博物馆',name:'Landesmuseum Zürich',tourism:'museum',website:'https://www.landesmuseum.ch','addr:city':'Zürich',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'11247'}},
+  {type:'node',id:48,lat:46.9480,lon:7.4519,tags:{nameZh:'伯尔尼自然历史博物馆',name:'Naturhistorisches Museum Bern',tourism:'museum',website:'https://www.nmbe.ch','addr:city':'Bern',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'5842'}},
+  {type:'node',id:49,lat:46.9442,lon:7.4487,tags:{nameZh:'伯尔尼爱因斯坦故居',name:'Einstein Haus Bern',tourism:'museum',website:'https://www.einstein-bern.ch','addr:city':'Bern',opening_hours:'Mo-Su 10:00-17:00',rating:'4.2',reviews:'3218'}},
+  {type:'node',id:50,lat:46.0197,lon:8.9525,tags:{nameZh:'卢加诺瑞士缩微景观',name:'Swissminiatur',tourism:'museum',website:'https://www.swissminiatur.ch','addr:city':'Melide',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.2',reviews:'8421'}},
+  {type:'node',id:51,lat:47.5581,lon:7.5879,tags:{nameZh:'巴塞尔纸磨坊博物馆',name:'Basler Papiermühle',tourism:'museum',website:'https://www.papiermuseum.ch','addr:city':'Basel',opening_hours:'Tu-Su 11:00-17:00',rating:'4.5',reviews:'2847'}},
+  {type:'node',id:52,lat:47.3775,lon:8.5406,tags:{nameZh:'苏黎世美术馆',name:'Kunsthaus Zürich',tourism:'museum',website:'https://www.kunsthaus.ch','addr:city':'Zürich',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'9218'}},
+  {type:'node',id:53,lat:46.9500,lon:7.4386,tags:{nameZh:'伯尔尼通讯博物馆',name:'Museum für Kommunikation',tourism:'museum',website:'https://www.mfk.ch','addr:city':'Bern',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'3842'}},
+  {type:'node',id:54,lat:46.2017,lon:6.1464,tags:{nameZh:'日内瓦科学历史博物馆',name:'Musée d\'histoire des sciences',tourism:'museum','addr:city':'Geneva',opening_hours:'We-Mo 10:00-17:00'}},
+  {type:'node',id:55,lat:47.0500,lon:8.3050,tags:{nameZh:'卢塞恩冰川博物馆',name:'Gletschergarten Museum',tourism:'museum',website:'https://www.gletschergarten.ch','addr:city':'Lucerne',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'4218'}},
+  {type:'node',id:56,lat:47.5578,lon:7.5928,tags:{nameZh:'巴塞尔自然历史博物馆',name:'Naturhistorisches Museum Basel',tourism:'museum',website:'https://www.nmbs.ch','addr:city':'Basel',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'3842'}},
+  {type:'node',id:57,lat:46.5200,lon:6.6300,tags:{nameZh:'洛桑国际奥委会博物馆',name:'Musée Olympique',tourism:'museum',website:'https://www.olympics.com/museum','addr:city':'Lausanne',opening_hours:'Tu-Su 09:00-18:00',rating:'4.5',reviews:'12847'}},
+  {type:'node',id:58,lat:46.8200,lon:8.2500,tags:{nameZh:'卢塞恩瑞士刀博物馆',name:'Victorinox Swiss Knife Museum',tourism:'museum','addr:city':'Brunnen',opening_hours:'Mo-Su 09:00-17:00'}},
+  {type:'node',id:59,lat:46.8300,lon:6.9300,tags:{nameZh:'格吕耶尔奶酪工厂',name:'La Maison du Gruyère',tourism:'museum',website:'https://www.lamaisondugruyere.ch','addr:city':'Gruyères',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'7842'}},
+  {type:'node',id:60,lat:46.4700,lon:6.8600,tags:{nameZh:'卡耶巧克力工厂',name:'Maison Cailler',tourism:'museum',website:'https://www.cailler.ch','addr:city':'Broc',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'11247'}},
+  {type:'node',id:61,lat:46.8617,lon:6.8467,tags:{nameZh:'格吕耶尔城堡博物馆',name:'Château de Gruyères',tourism:'museum',website:'https://www.chateau-gruyeres.ch','addr:city':'Gruyères',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'6218'}},
+  {type:'node',id:62,lat:47.4217,lon:9.3700,tags:{nameZh:'圣加仑修道院图书馆',name:'Stiftsbibliothek St. Gallen',tourism:'museum',website:'https://www.stiftsbezirk.ch','addr:city':'St. Gallen',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'5218'}},
+  {type:'node',id:63,lat:46.7983,lon:7.1550,tags:{nameZh:'弗里堡自然历史博物馆',name:'Musée d\'histoire naturelle Fribourg',tourism:'museum','addr:city':'Fribourg',opening_hours:'Tu-Su 14:00-18:00'}},
+  {type:'node',id:64,lat:47.0500,lon:8.2800,tags:{nameZh:'理查德·瓦格纳博物馆',name:'Richard Wagner Museum',tourism:'museum','addr:city':'Lucerne',opening_hours:'Tu-Su 11:00-17:00'}},
+
+  // CHINESE RESTAURANTS (~25)
+  {type:'node',id:80,lat:47.3769,lon:8.5417,tags:{nameZh:'海底捞苏黎世',name:'Haidilao Zürich',amenity:'chinese_restaurant',website:'https://www.haidilao.com','addr:city':'Zürich','addr:street':'Europaallee 36',opening_hours:'Mo-Su 11:00-23:00'}},
+  {type:'node',id:81,lat:47.3740,lon:8.5380,tags:{nameZh:'麻辣诱惑',name:'Mala Zürich',amenity:'chinese_restaurant','addr:city':'Zürich','addr:street':'Langstrasse 150',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:82,lat:47.3770,lon:8.5350,tags:{nameZh:'天府人家',name:'Tian Fu Zürich',amenity:'chinese_restaurant','addr:city':'Zürich','addr:street':'Militärstrasse 76',opening_hours:'Tu-Su 11:30-22:00'}},
+  {type:'node',id:83,lat:47.3750,lon:8.5300,tags:{nameZh:'川味居',name:'Sichuan Kitchen Zürich',amenity:'chinese_restaurant','addr:city':'Zürich','addr:street':'Badenerstrasse 120',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:84,lat:47.3780,lon:8.5400,tags:{nameZh:'老四川',name:'Old Sichuan Zürich',amenity:'chinese_restaurant','addr:city':'Zürich','addr:street':'Kasernenstrasse 15',opening_hours:'Tu-Su 12:00-22:00'}},
+  {type:'node',id:85,lat:46.2044,lon:6.1432,tags:{nameZh:'日内瓦金龙',name:'Golden Dragon Genève',amenity:'chinese_restaurant','addr:city':'Geneva','addr:street':'Rue de Lausanne 50',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:86,lat:46.2030,lon:6.1450,tags:{nameZh:'日内瓦中华楼',name:'China Town Genève',amenity:'chinese_restaurant','addr:city':'Geneva','addr:street':'Rue des Pâquis 20',opening_hours:'Mo-Su 11:30-23:00'}},
+  {type:'node',id:87,lat:46.2060,lon:6.1480,tags:{nameZh:'日内瓦满堂红',name:'Mandarin Genève',amenity:'chinese_restaurant','addr:city':'Geneva','addr:street':'Rue du Mont-Blanc 18',opening_hours:'Mo-Su 12:00-22:30'}},
+  {type:'node',id:88,lat:47.5580,lon:7.5870,tags:{nameZh:'巴塞尔龙宫',name:'Dragon Palace Basel',amenity:'chinese_restaurant','addr:city':'Basel','addr:street':'Steinenberg 14',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:89,lat:47.5560,lon:7.5900,tags:{nameZh:'巴塞尔中华城',name:'China City Basel',amenity:'chinese_restaurant','addr:city':'Basel','addr:street':'Barfüsserplatz 6',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:90,lat:46.9480,lon:7.4480,tags:{nameZh:'伯尔尼金城',name:'Jin Cheng Bern',amenity:'chinese_restaurant','addr:city':'Bern','addr:street':'Aarbergergasse 30',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:91,lat:46.9500,lon:7.4500,tags:{nameZh:'伯尔尼中华园',name:'China Garden Bern',amenity:'chinese_restaurant','addr:city':'Bern','addr:street':'Marktgasse 55',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:92,lat:46.5200,lon:6.6350,tags:{nameZh:'洛桑金龙',name:'Golden Dragon Lausanne',amenity:'chinese_restaurant','addr:city':'Lausanne','addr:street':'Avenue de la Gare 10',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:93,lat:46.5180,lon:6.6300,tags:{nameZh:'洛桑中华阁',name:'China Pavilion Lausanne',amenity:'chinese_restaurant','addr:city':'Lausanne','addr:street':'Rue du Petit-Chêne 18',opening_hours:'Mo-Su 12:00-22:00'}},
+  {type:'node',id:94,lat:47.0500,lon:8.3100,tags:{nameZh:'卢塞恩中华楼',name:'China Restaurant Luzern',amenity:'chinese_restaurant','addr:city':'Lucerne','addr:street':'Pilatusstrasse 20',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:95,lat:47.4200,lon:9.3680,tags:{nameZh:'圣加仑中华园',name:'China Garden St. Gallen',amenity:'chinese_restaurant','addr:city':'St. Gallen','addr:street':'Bahnhofstrasse 10',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:96,lat:46.0050,lon:8.9500,tags:{nameZh:'卢加诺中华楼',name:'China Restaurant Lugano',amenity:'chinese_restaurant','addr:city':'Lugano','addr:street':'Via Nassa 22',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:97,lat:47.3760,lon:8.5420,tags:{nameZh:'苏黎世龙门',name:'Long Men Zürich',amenity:'chinese_restaurant','addr:city':'Zürich','addr:street':'Limmatstrasse 80',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:98,lat:46.2050,lon:6.1500,tags:{nameZh:'日内瓦蜀味',name:'Shu Wei Genève',amenity:'chinese_restaurant','addr:city':'Geneva','addr:street':'Rue de Berne 12',opening_hours:'Tu-Su 12:00-22:00'}},
+  {type:'node',id:99,lat:47.3730,lon:8.5310,tags:{nameZh:'苏黎世翠园',name:'Jade Garden Zürich',amenity:'chinese_restaurant','addr:city':'Zürich','addr:street':'Seebahnstrasse 45',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:100,lat:47.4800,lon:8.7200,tags:{nameZh:'温特图尔中华城',name:'China City Winterthur',amenity:'chinese_restaurant','addr:city':'Winterthur','addr:street':'Marktgasse 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:101,lat:46.8500,lon:7.1000,tags:{nameZh:'弗里堡金龙',name:'Golden Dragon Fribourg',amenity:'chinese_restaurant','addr:city':'Fribourg','addr:street':'Rue de Romont 10',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:102,lat:47.1700,lon:8.5200,tags:{nameZh:'楚格中华阁',name:'China Pavilion Zug',amenity:'chinese_restaurant','addr:city':'Zug','addr:street':'Bahnhofstrasse 8',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:103,lat:46.9200,lon:7.3600,tags:{nameZh:'穆尔滕中华园',name:'China Garden Murten',amenity:'chinese_restaurant','addr:city':'Murten','addr:street':'Hauptgasse 15',opening_hours:'Tu-Su 11:30-22:00'}},
+  {type:'node',id:104,lat:47.0500,lon:7.6200,tags:{nameZh:'索洛图恩中华楼',name:'China Restaurant Solothurn',amenity:'chinese_restaurant','addr:city':'Solothurn','addr:street':'Hauptgasse 45',opening_hours:'Mo-Su 11:30-22:00'}},
+
+  // NATURE (~35)
+  {type:'node',id:120,lat:46.5369,lon:7.9622,tags:{nameZh:'少女峰',name:'Jungfraujoch - Top of Europe',leisure:'nature_reserve',website:'https://www.jungfrau.ch','addr:city':'Interlaken',opening_hours:'Mo-Su (seasonal)',rating:'4.6',reviews:'42318'}},
+  {type:'node',id:121,lat:45.9764,lon:7.6586,tags:{nameZh:'马特宏峰',name:'Matterhorn',leisure:'nature_reserve','addr:city':'Zermatt',rating:'4.8',reviews:'18924'}},
+  {type:'node',id:122,lat:47.6775,lon:8.6150,tags:{nameZh:'莱茵瀑布',name:'Rhine Falls (Rheinfall)',leisure:'nature_reserve',website:'https://www.rheinfall.ch','addr:city':'Neuhausen am Rheinfall',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'28431'}},
+  {type:'node',id:123,lat:46.4000,lon:8.0833,tags:{nameZh:'阿莱奇冰川',name:'Aletsch Glacier',leisure:'nature_reserve','addr:city':'Riederalp',rating:'4.7',reviews:'8421'}},
+  {type:'node',id:124,lat:46.6167,lon:10.1833,tags:{nameZh:'瑞士国家公园',name:'Swiss National Park',leisure:'nature_reserve',website:'https://www.nationalpark.ch','addr:city':'Zernez',rating:'4.6',reviews:'5842'}},
+  {type:'node',id:125,lat:46.3833,lon:6.4667,tags:{nameZh:'日内瓦湖',name:'Lake Geneva (Lac Léman)',leisure:'nature_reserve','addr:city':'Geneva'}},
+  {type:'node',id:126,lat:47.0000,lon:8.4333,tags:{nameZh:'卢塞恩湖',name:'Lake Lucerne (Vierwaldstättersee)',leisure:'nature_reserve','addr:city':'Lucerne'}},
+  {type:'node',id:127,lat:46.6800,lon:7.6900,tags:{nameZh:'蓝湖',name:'Blausee',leisure:'nature_reserve',website:'https://www.blausee.ch','addr:city':'Mitholz',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'4218'}},
+  {type:'node',id:128,lat:46.4975,lon:7.7375,tags:{nameZh:'厄希嫩湖',name:'Oeschinensee',leisure:'nature_reserve','addr:city':'Kandersteg',rating:'4.7',reviews:'6842'}},
+  {type:'node',id:129,lat:46.5600,lon:7.9100,tags:{nameZh:'特吕默尔巴赫瀑布',name:'Trümmelbach Falls',leisure:'nature_reserve',website:'https://www.truemmelbachfaelle.ch','addr:city':'Lauterbrunnen',opening_hours:'Mo-Su 09:00-17:00 (seasonal)',rating:'4.5',reviews:'8924'}},
+  {type:'node',id:130,lat:46.6900,lon:7.8700,tags:{nameZh:'布里恩茨湖',name:'Lake Brienz',leisure:'nature_reserve','addr:city':'Brienz'}},
+  {type:'node',id:131,lat:46.7600,lon:7.6300,tags:{nameZh:'图恩湖',name:'Lake Thun',leisure:'nature_reserve','addr:city':'Thun'}},
+  {type:'node',id:132,lat:46.4500,lon:7.4500,tags:{nameZh:'塞芒湖',name:'Lac de la Gruyère',leisure:'nature_reserve','addr:city':'Gruyères'}},
+  {type:'node',id:133,lat:47.2700,lon:8.8500,tags:{nameZh:'苏黎世湖',name:'Zürichsee',leisure:'nature_reserve','addr:city':'Zürich'}},
+  {type:'node',id:134,lat:47.6500,lon:9.2100,tags:{nameZh:'博登湖瑞士',name:'Bodensee (Swiss Shore)',leisure:'nature_reserve','addr:city':'Rorschach'}},
+  {type:'node',id:135,lat:46.4600,lon:6.5400,tags:{nameZh:'拉沃葡萄园',name:'Lavaux Vineyards',leisure:'nature_reserve','addr:city':'Lavaux',rating:'4.6',reviews:'3842'}},
+  {type:'node',id:136,lat:46.5800,lon:8.0100,tags:{nameZh:'劳特布龙嫩瀑布谷',name:'Lauterbrunnen Valley',leisure:'nature_reserve','addr:city':'Lauterbrunnen',rating:'4.7',reviews:'12847'}},
+  {type:'node',id:137,lat:46.5800,lon:7.9100,tags:{nameZh:'雪朗峰',name:'Schilthorn',leisure:'nature_reserve',website:'https://www.schilthorn.ch','addr:city':'Mürren',rating:'4.5',reviews:'8421'}},
+  {type:'node',id:138,lat:46.6800,lon:8.0800,tags:{nameZh:'铁力士山',name:'Mount Titlis',leisure:'nature_reserve',website:'https://www.titlis.ch','addr:city':'Engelberg',rating:'4.5',reviews:'14218'}},
+  {type:'node',id:139,lat:46.5600,lon:7.8600,tags:{nameZh:'格林德瓦第一悬崖步道',name:'First Cliff Walk Grindelwald',leisure:'nature_reserve',website:'https://www.jungfrau.ch','addr:city':'Grindelwald',opening_hours:'Mo-Su 08:30-17:00 (seasonal)',rating:'4.6',reviews:'5218'}},
+  {type:'node',id:140,lat:47.0500,lon:8.3300,tags:{nameZh:'皮拉图斯山',name:'Mount Pilatus',leisure:'nature_reserve',website:'https://www.pilatus.ch','addr:city':'Alpnachstad',rating:'4.6',reviews:'11247'}},
+  {type:'node',id:141,lat:47.0500,lon:8.4800,tags:{nameZh:'瑞吉山',name:'Rigi',leisure:'nature_reserve',website:'https://www.rigi.ch','addr:city':'Vitznau',rating:'4.6',reviews:'8924'}},
+  {type:'node',id:142,lat:46.8800,lon:9.8200,tags:{nameZh:'达沃斯湖',name:'Davosersee',leisure:'nature_reserve','addr:city':'Davos'}},
+  {type:'node',id:143,lat:46.4900,lon:9.8400,tags:{nameZh:'圣莫里茨湖',name:'St. Moritzersee',leisure:'nature_reserve','addr:city':'St. Moritz'}},
+  {type:'node',id:144,lat:46.4400,lon:6.9200,tags:{nameZh:'蒙特勒里维埃拉',name:'Montreux Riviera',leisure:'nature_reserve','addr:city':'Montreux'}},
+
+  // HISTORIC (~15)
+  {type:'node',id:160,lat:46.4142,lon:6.9275,tags:{nameZh:'西庸城堡',name:'Château de Chillon',historic:'castle',website:'https://www.chillon.ch','addr:city':'Veytaux',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'18247'}},
+  {type:'node',id:161,lat:46.9480,lon:7.4510,tags:{nameZh:'伯尔尼老城',name:'Altstadt Bern',historic:'monument','addr:city':'Bern',rating:'4.7',reviews:'12847'}},
+  {type:'node',id:162,lat:47.0517,lon:8.3075,tags:{nameZh:'卡佩尔桥',name:'Kapellbrücke',historic:'monument','addr:city':'Lucerne',rating:'4.6',reviews:'28431'}},
+  {type:'node',id:163,lat:47.4237,lon:9.3778,tags:{nameZh:'圣加仑修道院',name:'Abbey of St. Gall',historic:'monument',website:'https://www.stiftsbezirk.ch','addr:city':'St. Gallen',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'5218'}},
+  {type:'node',id:164,lat:46.9464,lon:7.4441,tags:{nameZh:'伯尔尼钟塔',name:'Zytglogge',historic:'monument','addr:city':'Bern',rating:'4.5',reviews:'8924'}},
+  {type:'node',id:165,lat:47.5569,lon:7.5884,tags:{nameZh:'巴塞尔大教堂',name:'Basler Münster',historic:'monument','addr:city':'Basel',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'7218'}},
+  {type:'node',id:166,lat:46.5161,lon:6.6317,tags:{nameZh:'洛桑大教堂',name:'Cathédrale de Lausanne',historic:'monument','addr:city':'Lausanne',opening_hours:'Mo-Su 09:00-17:30',rating:'4.5',reviews:'4218'}},
+  {type:'node',id:167,lat:46.2035,lon:6.1472,tags:{nameZh:'日内瓦圣皮埃尔大教堂',name:'Cathédrale Saint-Pierre',historic:'monument','addr:city':'Geneva',opening_hours:'Mo-Su 09:30-18:00',rating:'4.4',reviews:'5842'}},
+  {type:'node',id:168,lat:46.6700,lon:6.5100,tags:{nameZh:'尼翁城堡',name:'Château de Nyon',historic:'castle','addr:city':'Nyon',opening_hours:'Tu-Su 10:00-17:00'}},
+  {type:'node',id:169,lat:46.5950,lon:7.9067,tags:{nameZh:'施皮茨城堡',name:'Schloss Spiez',historic:'castle',website:'https://www.schloss-spiez.ch','addr:city':'Spiez',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.4',reviews:'2847'}},
+  {type:'node',id:170,lat:46.7500,lon:7.6200,tags:{nameZh:'图恩城堡',name:'Schloss Thun',historic:'castle',website:'https://www.schlossthun.ch','addr:city':'Thun',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'3218'}},
+  {type:'node',id:171,lat:46.8200,lon:8.2400,tags:{nameZh:'施维茨联邦宪章博物馆',name:'Bundesbriefmuseum',historic:'monument',website:'https://www.bundesbrief.ch','addr:city':'Schwyz',opening_hours:'Tu-Su 10:00-17:00'}},
+  {type:'node',id:172,lat:47.0533,lon:8.3094,tags:{nameZh:'卢塞恩狮子纪念碑',name:'Löwendenkmal',historic:'monument','addr:city':'Lucerne',rating:'4.4',reviews:'14218'}},
+  {type:'node',id:173,lat:46.8300,lon:6.9400,tags:{nameZh:'格吕耶尔小镇',name:'Gruyères Medieval Town',historic:'monument','addr:city':'Gruyères',rating:'4.6',reviews:'6842'}},
+  {type:'node',id:174,lat:46.9900,lon:6.9300,tags:{nameZh:'阿旺什罗马遗址',name:'Avenches Roman Amphitheatre',historic:'ruins','addr:city':'Avenches',opening_hours:'Mo-Su 09:00-17:00'}},
+
+  // BEACHES / LAKES (~15)
+  {type:'node',id:190,lat:47.3600,lon:8.5400,tags:{nameZh:'苏黎世湖浴场',name:'Strandbad Tiefenbrunnen',natural:'beach','addr:city':'Zürich',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:191,lat:46.9480,lon:7.4350,tags:{nameZh:'伯尔尼阿勒河浴场',name:'Marzilibad',natural:'beach','addr:city':'Bern',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:192,lat:46.5150,lon:6.6200,tags:{nameZh:'洛桑贝勒里夫浴场',name:'Plage de Bellerive',natural:'beach','addr:city':'Lausanne'}},
+  {type:'node',id:193,lat:46.2100,lon:6.1600,tags:{nameZh:'日内瓦公共浴场',name:'Bains des Pâquis',natural:'beach','addr:city':'Geneva',rating:'4.4',reviews:'5842'}},
+  {type:'node',id:194,lat:47.5600,lon:7.6000,tags:{nameZh:'巴塞尔莱茵河浴场',name:'Rheinbad Breite',natural:'beach','addr:city':'Basel'}},
+  {type:'node',id:195,lat:47.0550,lon:8.3200,tags:{nameZh:'卢塞恩湖浴场',name:'Strandbad Lido Luzern',natural:'beach','addr:city':'Lucerne',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:196,lat:46.7600,lon:7.6200,tags:{nameZh:'图恩湖浴场',name:'Strandbad Thun',natural:'beach','addr:city':'Thun',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:197,lat:46.6900,lon:7.8700,tags:{nameZh:'布里恩茨湖浴场',name:'Strandbad Brienz',natural:'beach','addr:city':'Brienz'}},
+  {type:'node',id:198,lat:46.4400,lon:6.8500,tags:{nameZh:'蒙特勒湖滨浴场',name:'Plage de Montreux',natural:'beach','addr:city':'Montreux'}},
+  {type:'node',id:199,lat:46.0000,lon:8.9500,tags:{nameZh:'卢加诺湖浴场',name:'Lido di Lugano',natural:'beach','addr:city':'Lugano',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  {type:'node',id:200,lat:46.8900,lon:7.0400,tags:{nameZh:'穆尔滕湖浴场',name:'Strandbad Murten',natural:'beach','addr:city':'Murten'}},
+  {type:'node',id:201,lat:47.2700,lon:8.7800,tags:{nameZh:'拉珀斯维尔湖滨浴场',name:'Strandbad Rapperswil',natural:'beach','addr:city':'Rapperswil-Jona'}},
+  {type:'node',id:202,lat:46.4900,lon:9.8400,tags:{nameZh:'圣莫里茨湖浴场',name:'Strandbad St. Moritz',natural:'beach','addr:city':'St. Moritz'}},
+  {type:'node',id:203,lat:47.6500,lon:9.2000,tags:{nameZh:'博登湖浴场',name:'Strandbad Rorschach',natural:'beach','addr:city':'Rorschach'}},
+  {type:'node',id:204,lat:46.9800,lon:6.8600,tags:{nameZh:'纳沙泰尔湖浴场',name:'Plage Neuchâtel',natural:'beach','addr:city':'Neuchâtel'}},
+
+  // INDOOR PLAYGROUNDS (~25)
+  {type:'node',id:220,lat:47.3900,lon:8.5200,tags:{nameZh:'苏黎世蹦床乐园',name:'JUMP House Zürich',leisure:'indoor_playground','addr:city':'Zürich',opening_hours:'Mo-Su 10:00-20:00'}},
+  {type:'node',id:221,lat:46.9400,lon:7.4300,tags:{nameZh:'伯尔尼室内乐园',name:'Kindercity Bern',leisure:'indoor_playground','addr:city':'Bern',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:222,lat:47.5500,lon:7.5700,tags:{nameZh:'巴塞尔室内乐园',name:'Kinderspielparadies Basel',leisure:'indoor_playground','addr:city':'Basel',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:223,lat:46.5100,lon:6.6200,tags:{nameZh:'洛桑室内乐园',name:'Kinderspielwelt Lausanne',leisure:'indoor_playground','addr:city':'Lausanne',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:224,lat:46.2000,lon:6.1400,tags:{nameZh:'日内瓦室内乐园',name:'Kiddy Dome Genève',leisure:'indoor_playground','addr:city':'Geneva',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:225,lat:47.0400,lon:8.3000,tags:{nameZh:'卢塞恩室内乐园',name:'Kinderspielplatz Indoor Luzern',leisure:'indoor_playground','addr:city':'Lucerne',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:226,lat:47.4100,lon:9.3600,tags:{nameZh:'圣加仑室内乐园',name:'Kinderspielwelt St. Gallen',leisure:'indoor_playground','addr:city':'St. Gallen',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:227,lat:47.4800,lon:8.7100,tags:{nameZh:'温特图尔室内乐园',name:'Indoor Spielpark Winterthur',leisure:'indoor_playground','addr:city':'Winterthur',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:228,lat:47.1700,lon:8.5200,tags:{nameZh:'楚格室内乐园',name:'Kinderspielwelt Zug',leisure:'indoor_playground','addr:city':'Zug',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:229,lat:46.0000,lon:8.9500,tags:{nameZh:'卢加诺室内乐园',name:'Indoor Playground Lugano',leisure:'indoor_playground','addr:city':'Lugano',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:230,lat:47.3800,lon:8.5300,tags:{nameZh:'苏黎世Kindercity',name:'Kindercity Zürich',leisure:'indoor_playground',website:'https://www.kindercity.ch','addr:city':'Volketswil',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'3842'}},
+  {type:'node',id:231,lat:46.8500,lon:7.1100,tags:{nameZh:'弗里堡室内乐园',name:'Kinderspielwelt Fribourg',leisure:'indoor_playground','addr:city':'Fribourg',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:232,lat:47.0500,lon:7.6200,tags:{nameZh:'索洛图恩室内乐园',name:'Kinderspielwelt Solothurn',leisure:'indoor_playground','addr:city':'Solothurn',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:233,lat:47.3900,lon:8.0500,tags:{nameZh:'阿劳室内乐园',name:'Kinderspielwelt Aarau',leisure:'indoor_playground','addr:city':'Aarau',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:234,lat:46.7700,lon:6.6400,tags:{nameZh:'伊韦尔东室内乐园',name:'Kinderspielwelt Yverdon',leisure:'indoor_playground','addr:city':'Yverdon-les-Bains',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:235,lat:47.5000,lon:8.7200,tags:{nameZh:'弗劳恩费尔德室内乐园',name:'Kinderspielwelt Frauenfeld',leisure:'indoor_playground','addr:city':'Frauenfeld',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:236,lat:46.2900,lon:7.5300,tags:{nameZh:'锡永室内乐园',name:'Kinderspielwelt Sion',leisure:'indoor_playground','addr:city':'Sion',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:237,lat:47.1400,lon:7.2500,tags:{nameZh:'比尔室内乐园',name:'Kinderspielwelt Biel',leisure:'indoor_playground','addr:city':'Biel/Bienne',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:238,lat:47.5600,lon:7.6000,tags:{nameZh:'巴塞尔蹦床乐园',name:'Trampolino Basel',leisure:'indoor_playground','addr:city':'Basel',opening_hours:'Mo-Su 10:00-20:00'}},
+  {type:'node',id:239,lat:46.8100,lon:9.8400,tags:{nameZh:'达沃斯室内乐园',name:'Kinderspielwelt Davos',leisure:'indoor_playground','addr:city':'Davos',opening_hours:'Mo-Su 10:00-18:00'}},
+
+  // CHILDREN'S FARMS (~15)
+  {type:'node',id:250,lat:47.3500,lon:8.5600,tags:{nameZh:'苏黎世儿童农场',name:'Kinderbauernhof Zürich',tourism:'children_farm','addr:city':'Zürich',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:251,lat:46.9500,lon:7.4200,tags:{nameZh:'伯尔尼儿童农场',name:'Kinderbauernhof Bern',tourism:'children_farm','addr:city':'Bern',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:252,lat:47.5600,lon:7.5800,tags:{nameZh:'巴塞尔儿童农场',name:'Kinderbauernhof Basel',tourism:'children_farm','addr:city':'Basel',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:253,lat:47.0400,lon:8.3200,tags:{nameZh:'卢塞恩儿童农场',name:'Kinderbauernhof Luzern',tourism:'children_farm','addr:city':'Lucerne',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:254,lat:46.2100,lon:6.1500,tags:{nameZh:'日内瓦儿童农场',name:'Ferme de Budé',tourism:'children_farm','addr:city':'Geneva',opening_hours:'Tu-Su 10:00-17:00'}},
+  {type:'node',id:255,lat:46.5200,lon:6.6400,tags:{nameZh:'洛桑儿童农场',name:'Ferme des Boveresses',tourism:'children_farm','addr:city':'Lausanne',opening_hours:'We-Su 10:00-17:00'}},
+  {type:'node',id:256,lat:47.4200,lon:9.3700,tags:{nameZh:'圣加仑儿童农场',name:'Kinderbauernhof St. Gallen',tourism:'children_farm','addr:city':'St. Gallen',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:257,lat:47.4800,lon:8.7200,tags:{nameZh:'温特图尔儿童农场',name:'Kinderbauernhof Winterthur',tourism:'children_farm','addr:city':'Winterthur',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:258,lat:46.0100,lon:8.9600,tags:{nameZh:'卢加诺儿童农场',name:'Fattoria didattica Lugano',tourism:'children_farm','addr:city':'Lugano',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:259,lat:46.8500,lon:7.1000,tags:{nameZh:'弗里堡儿童农场',name:'Ferme pédagogique Fribourg',tourism:'children_farm','addr:city':'Fribourg',opening_hours:'We-Su 10:00-17:00'}},
+  {type:'node',id:260,lat:47.1700,lon:8.5200,tags:{nameZh:'楚格儿童农场',name:'Kinderbauernhof Zug',tourism:'children_farm','addr:city':'Zug',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:261,lat:46.7700,lon:6.6400,tags:{nameZh:'伊韦尔东儿童农场',name:'Ferme pédagogique Yverdon',tourism:'children_farm','addr:city':'Yverdon-les-Bains',opening_hours:'We-Su 10:00-17:00'}},
+  {type:'node',id:262,lat:47.3900,lon:8.0400,tags:{nameZh:'阿劳儿童农场',name:'Kinderbauernhof Aarau',tourism:'children_farm','addr:city':'Aarau',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:263,lat:46.2900,lon:7.5400,tags:{nameZh:'锡永儿童农场',name:'Ferme pédagogique Sion',tourism:'children_farm','addr:city':'Sion',opening_hours:'We-Su 10:00-17:00'}},
+  {type:'node',id:264,lat:47.1400,lon:7.2500,tags:{nameZh:'比尔儿童农场',name:'Kinderbauernhof Biel',tourism:'children_farm','addr:city':'Biel/Bienne',opening_hours:'Mo-Su 10:00-17:00'}},
+
+  // PLAYGROUNDS (~30)
+  {type:'node',id:280,lat:47.3700,lon:8.5500,tags:{nameZh:'苏黎世中国花园游乐场',name:'Spielplatz Chinagarten Zürich',leisure:'playground','addr:city':'Zürich'}},
+  {type:'node',id:281,lat:46.9500,lon:7.4400,tags:{nameZh:'伯尔尼熊公园游乐场',name:'Spielplatz Bärengraben',leisure:'playground','addr:city':'Bern'}},
+  {type:'node',id:282,lat:47.5600,lon:7.5900,tags:{nameZh:'巴塞尔长草地游乐场',name:'Spielplatz Lange Erlen',leisure:'playground','addr:city':'Basel'}},
+  {type:'node',id:283,lat:46.5200,lon:6.6300,tags:{nameZh:'洛桑蒙-蕾蓬游乐场',name:'Aire de jeux Mon-Repos',leisure:'playground','addr:city':'Lausanne'}},
+  {type:'node',id:284,lat:46.2100,lon:6.1500,tags:{nameZh:'日内瓦巴斯蒂昂公园游乐场',name:'Aire de jeux Parc des Bastions',leisure:'playground','addr:city':'Geneva'}},
+  {type:'node',id:285,lat:47.0500,lon:8.3100,tags:{nameZh:'卢塞恩因塞利公园游乐场',name:'Spielplatz Inseli',leisure:'playground','addr:city':'Lucerne'}},
+  {type:'node',id:286,lat:47.4200,lon:9.3700,tags:{nameZh:'圣加仑城市公园游乐场',name:'Spielplatz Stadtpark St. Gallen',leisure:'playground','addr:city':'St. Gallen'}},
+  {type:'node',id:287,lat:47.4900,lon:8.7200,tags:{nameZh:'温特图尔城市公园游乐场',name:'Spielplatz Stadtpark Winterthur',leisure:'playground','addr:city':'Winterthur'}},
+  {type:'node',id:288,lat:46.7600,lon:7.6300,tags:{nameZh:'图恩河畔游乐场',name:'Spielplatz Schwäbis Thun',leisure:'playground','addr:city':'Thun'}},
+  {type:'node',id:289,lat:46.5600,lon:7.9000,tags:{nameZh:'格林德瓦体育场游乐场',name:'Spielplatz Grindelwald',leisure:'playground','addr:city':'Grindelwald'}},
+  {type:'node',id:290,lat:46.6900,lon:7.8700,tags:{nameZh:'因特拉肯赫尔马特游乐场',name:'Spielplatz Höhematte Interlaken',leisure:'playground','addr:city':'Interlaken'}},
+  {type:'node',id:291,lat:47.1700,lon:8.5100,tags:{nameZh:'楚格城市公园游乐场',name:'Spielplatz Stadtpark Zug',leisure:'playground','addr:city':'Zug'}},
+  {type:'node',id:292,lat:46.8500,lon:7.1000,tags:{nameZh:'弗里堡城市花园游乐场',name:'Aire de jeux Jardin de Pérolles',leisure:'playground','addr:city':'Fribourg'}},
+  {type:'node',id:293,lat:47.0500,lon:7.6200,tags:{nameZh:'索洛图恩河畔游乐场',name:'Spielplatz Aare Solothurn',leisure:'playground','addr:city':'Solothurn'}},
+  {type:'node',id:294,lat:46.0050,lon:8.9500,tags:{nameZh:'卢加诺公园游乐场',name:'Parco Civico Lugano',leisure:'playground','addr:city':'Lugano'}},
+  {type:'node',id:295,lat:46.2300,lon:6.0600,tags:{nameZh:'日内瓦大喷泉公园',name:'Aire de jeux Jet d\'Eau',leisure:'playground','addr:city':'Geneva'}},
+  {type:'node',id:296,lat:47.3800,lon:8.5200,tags:{nameZh:'苏黎世利马特河畔游乐场',name:'Spielplatz Limmat',leisure:'playground','addr:city':'Zürich'}},
+  {type:'node',id:297,lat:46.9500,lon:7.4600,tags:{nameZh:'伯尔尼罗森花园游乐场',name:'Spielplatz Rosengarten',leisure:'playground','addr:city':'Bern'}},
+  {type:'node',id:298,lat:47.5500,lon:7.5700,tags:{nameZh:'巴塞尔许茨莫特游乐场',name:'Spielplatz Schützenmattpark',leisure:'playground','addr:city':'Basel'}},
+  {type:'node',id:299,lat:46.4400,lon:6.9200,tags:{nameZh:'蒙特勒湖畔游乐场',name:'Aire de jeux Quai Montreux',leisure:'playground','addr:city':'Montreux'}},
+  {type:'node',id:300,lat:46.2900,lon:7.5300,tags:{nameZh:'锡永游乐场',name:'Aire de jeux Parc de Tourbillon',leisure:'playground','addr:city':'Sion'}},
+  {type:'node',id:301,lat:47.1400,lon:7.2600,tags:{nameZh:'比尔湖畔游乐场',name:'Spielplatz Seeufer Biel',leisure:'playground','addr:city':'Biel/Bienne'}},
+  {type:'node',id:302,lat:46.7700,lon:6.6400,tags:{nameZh:'伊韦尔东温泉浴场游乐场',name:'Aire de jeux Yverdon',leisure:'playground','addr:city':'Yverdon-les-Bains'}},
+  {type:'node',id:303,lat:47.6800,lon:8.6200,tags:{nameZh:'沙夫豪森城市游乐场',name:'Spielplatz Munot Schaffhausen',leisure:'playground','addr:city':'Schaffhausen'}},
+  {type:'node',id:304,lat:46.9800,lon:6.8700,tags:{nameZh:'纳沙泰尔湖畔游乐场',name:'Aire de jeux Neuchâtel',leisure:'playground','addr:city':'Neuchâtel'}},
+  {type:'node',id:305,lat:46.8100,lon:9.8500,tags:{nameZh:'达沃斯游乐场',name:'Spielplatz Davos Platz',leisure:'playground','addr:city':'Davos'}},
+  {type:'node',id:306,lat:47.2700,lon:8.7800,tags:{nameZh:'拉珀斯维尔城堡游乐场',name:'Spielplatz Schloss Rapperswil',leisure:'playground','addr:city':'Rapperswil-Jona'}},
+  {type:'node',id:307,lat:47.3900,lon:8.0400,tags:{nameZh:'阿劳河畔游乐场',name:'Spielplatz Aarau',leisure:'playground','addr:city':'Aarau'}},
+
+  // SWIMMING POOLS (~15)
+  {type:'node',id:320,lat:47.3600,lon:8.5200,tags:{nameZh:'苏黎世露天泳池',name:'Freibad Letzigraben Zürich',leisure:'swimming_pool','addr:city':'Zürich',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:321,lat:46.9400,lon:7.4200,tags:{nameZh:'伯尔尼Weyermannshaus泳池',name:'Weyermannshaus Freibad',leisure:'swimming_pool','addr:city':'Bern',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:322,lat:47.5500,lon:7.5800,tags:{nameZh:'巴塞尔花园泳池',name:'Gartenbad Bachgraben Basel',leisure:'swimming_pool','addr:city':'Basel',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:323,lat:47.0400,lon:8.3100,tags:{nameZh:'卢塞恩室内泳池',name:'Hallenbad Luzern',leisure:'swimming_pool','addr:city':'Lucerne',opening_hours:'Mo-Su 08:00-21:00'}},
+  {type:'node',id:324,lat:46.7700,lon:6.6400,tags:{nameZh:'伊韦尔东温泉中心',name:'Centre Thermal Yverdon',leisure:'swimming_pool',website:'https://www.cty.ch','addr:city':'Yverdon-les-Bains',opening_hours:'Mo-Su 08:00-22:00',rating:'4.3',reviews:'5218'}},
+  {type:'node',id:325,lat:46.2300,lon:7.3600,tags:{nameZh:'洛伊克巴德温泉',name:'Leukerbad Therme',leisure:'swimming_pool',website:'https://www.leukerbad-therme.ch','addr:city':'Leukerbad',opening_hours:'Mo-Su 08:00-20:00',rating:'4.5',reviews:'8421'}},
+  {type:'node',id:326,lat:46.4000,lon:7.5700,tags:{nameZh:'奥尔扎温泉',name:'Bains de la Gruyère',leisure:'swimming_pool','addr:city':'Charmey',opening_hours:'Mo-Su 10:00-21:00'}},
+  {type:'node',id:327,lat:47.2800,lon:7.5300,tags:{nameZh:'祖赫维温泉',name:'Solbad & Spa Zuchwil',leisure:'swimming_pool','addr:city':'Zuchwil',opening_hours:'Mo-Su 09:00-22:00'}},
+  {type:'node',id:328,lat:47.4800,lon:8.2200,tags:{nameZh:'巴登温泉',name:'Thermalbad Zurzach',leisure:'swimming_pool',website:'https://www.thermalbad.ch','addr:city':'Bad Zurzach',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'3218'}},
+  {type:'node',id:329,lat:46.6100,lon:9.8700,tags:{nameZh:'斯库奥尔温泉',name:'Bogn Engiadina Scuol',leisure:'swimming_pool',website:'https://www.bognengiadina.ch','addr:city':'Scuol',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'2847'}},
+  {type:'node',id:330,lat:47.0500,lon:8.4800,tags:{nameZh:'韦吉斯矿泉浴场',name:'Mineralbad & Spa Rigi Kaltbad',leisure:'swimming_pool',website:'https://www.mineralbad-rigikaltbad.ch','addr:city':'Rigi Kaltbad',opening_hours:'Mo-Su 11:00-20:00',rating:'4.5',reviews:'2218'}},
+  {type:'node',id:331,lat:46.5600,lon:7.9100,tags:{nameZh:'格林德瓦泳池',name:'Sportzentrum Grindelwald',leisure:'swimming_pool','addr:city':'Grindelwald',opening_hours:'Mo-Su 09:00-21:00'}},
+  {type:'node',id:332,lat:46.5300,lon:6.5700,tags:{nameZh:'洛桑贝勒里夫泳池',name:'Piscine de Bellerive Lausanne',leisure:'swimming_pool','addr:city':'Lausanne',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:333,lat:47.3800,lon:8.5400,tags:{nameZh:'苏黎世城市泳池',name:'Hallenbad City Zürich',leisure:'swimming_pool','addr:city':'Zürich',opening_hours:'Mo-Su 07:00-22:00'}},
+  {type:'node',id:334,lat:46.2100,lon:6.1500,tags:{nameZh:'日内瓦韦尔尼耶泳池',name:'Piscine de Vernets Genève',leisure:'swimming_pool','addr:city':'Geneva',opening_hours:'Mo-Su 07:00-21:00'}},
+
+  // BUFFET (~15)
+  {type:'node',id:350,lat:47.3750,lon:8.5350,tags:{nameZh:'苏黎世亚洲自助',name:'Asia Buffet Zürich',amenity:'buffet_restaurant','addr:city':'Zürich','addr:street':'Langstrasse 120',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:351,lat:46.9500,lon:7.4500,tags:{nameZh:'伯尔尼亚洲自助',name:'Asia Wok Bern',amenity:'buffet_restaurant','addr:city':'Bern','addr:street':'Bubenbergplatz 10',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:352,lat:47.5600,lon:7.5900,tags:{nameZh:'巴塞尔铁板烧',name:'Teppanyaki Basel',amenity:'buffet_restaurant','addr:city':'Basel','addr:street':'Steinenvorstadt 20',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:353,lat:46.2100,lon:6.1500,tags:{nameZh:'日内瓦亚洲自助',name:'Wok & Grill Genève',amenity:'buffet_restaurant','addr:city':'Geneva','addr:street':'Rue du Mont-Blanc 30',opening_hours:'Mo-Su 11:30-22:30'}},
+  {type:'node',id:354,lat:46.5200,lon:6.6300,tags:{nameZh:'洛桑铁板王',name:'Mongol Wok Lausanne',amenity:'buffet_restaurant','addr:city':'Lausanne','addr:street':'Place de la Gare 5',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:355,lat:47.0500,lon:8.3100,tags:{nameZh:'卢塞恩亚洲自助',name:'Asia Buffet Luzern',amenity:'buffet_restaurant','addr:city':'Lucerne','addr:street':'Pilatusstrasse 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:356,lat:47.4200,lon:9.3700,tags:{nameZh:'圣加仑铁板烧',name:'Wok Express St. Gallen',amenity:'buffet_restaurant','addr:city':'St. Gallen','addr:street':'Bahnhofstrasse 20',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:357,lat:47.4800,lon:8.7200,tags:{nameZh:'温特图尔铁板',name:'Asia Wok Winterthur',amenity:'buffet_restaurant','addr:city':'Winterthur','addr:street':'Bahnhofplatz 8',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:358,lat:47.1700,lon:8.5200,tags:{nameZh:'楚格铁板',name:'Wok & More Zug',amenity:'buffet_restaurant','addr:city':'Zug','addr:street':'Baarerstrasse 15',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:359,lat:46.8500,lon:7.1000,tags:{nameZh:'弗里堡亚洲自助',name:'Asia Buffet Fribourg',amenity:'buffet_restaurant','addr:city':'Fribourg','addr:street':'Rue de Romont 20',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:360,lat:47.3900,lon:8.0400,tags:{nameZh:'阿劳铁板',name:'Asia Wok Aarau',amenity:'buffet_restaurant','addr:city':'Aarau','addr:street':'Bahnhofstrasse 25',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:361,lat:47.1400,lon:7.2500,tags:{nameZh:'比尔亚洲自助',name:'Asia Buffet Biel',amenity:'buffet_restaurant','addr:city':'Biel/Bienne','addr:street':'Nidaugasse 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:362,lat:46.2900,lon:7.5300,tags:{nameZh:'锡永铁板',name:'Asia Wok Sion',amenity:'buffet_restaurant','addr:city':'Sion','addr:street':'Rue de Lausanne 15',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:363,lat:46.0050,lon:8.9500,tags:{nameZh:'卢加诺铁板',name:'Wok Express Lugano',amenity:'buffet_restaurant','addr:city':'Lugano','addr:street':'Via Nassa 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  {type:'node',id:364,lat:47.6800,lon:8.6200,tags:{nameZh:'沙夫豪森铁板',name:'Asia Wok Schaffhausen',amenity:'buffet_restaurant','addr:city':'Schaffhausen','addr:street':'Vordergasse 40',opening_hours:'Mo-Su 11:30-22:00'}},
+
+  // ATTRACTIONS & EXTRAS (~40)
+  {type:'node',id:380,lat:47.3769,lon:8.5417,tags:{nameZh:'苏黎世老城',name:'Altstadt Zürich',tourism:'attraction','addr:city':'Zürich'}},
+  {type:'node',id:381,lat:47.3700,lon:8.5400,tags:{nameZh:'苏黎世湖游船',name:'Zürichsee Schifffahrt',tourism:'attraction',website:'https://www.zsg.ch','addr:city':'Zürich'}},
+  {type:'node',id:382,lat:46.9480,lon:7.4480,tags:{nameZh:'伯尔尼熊公园',name:'BärenPark Bern',tourism:'attraction',website:'https://www.tierpark-bern.ch','addr:city':'Bern',opening_hours:'Mo-Su 24h',rating:'4.4',reviews:'5218'}},
+  {type:'node',id:383,lat:46.2044,lon:6.1432,tags:{nameZh:'日内瓦大喷泉',name:'Jet d\'Eau',tourism:'attraction','addr:city':'Geneva',rating:'4.5',reviews:'18247'}},
+  {type:'node',id:384,lat:47.0500,lon:8.3000,tags:{nameZh:'卢塞恩湖游船',name:'SGV Luzern Lake Cruise',tourism:'attraction',website:'https://www.lakelucerne.ch','addr:city':'Lucerne'}},
+  {type:'node',id:385,lat:46.0500,lon:7.6200,tags:{nameZh:'采尔马特冰川天堂',name:'Matterhorn Glacier Paradise',tourism:'attraction',website:'https://www.matterhornparadise.ch','addr:city':'Zermatt',opening_hours:'Mo-Su 08:00-16:00',rating:'4.5',reviews:'8924'}},
+  {type:'node',id:386,lat:46.6800,lon:7.8500,tags:{nameZh:'布里恩茨罗特峰蒸汽火车',name:'Brienz Rothorn Bahn',tourism:'attraction',website:'https://www.brienz-rothorn-bahn.ch','addr:city':'Brienz',opening_hours:'Mo-Su (seasonal)',rating:'4.7',reviews:'3842'}},
+  {type:'node',id:387,lat:46.4500,lon:6.8700,tags:{nameZh:'蒙特勒爵士音乐节区',name:'Montreux Jazz Heritage',tourism:'attraction','addr:city':'Montreux'}},
+  {type:'node',id:388,lat:47.5000,lon:8.7300,tags:{nameZh:'瓦尔特动物园',name:'Walter Zoo Gossau',tourism:'zoo',website:'https://www.walterzoo.ch','addr:city':'Gossau SG',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'4218'}},
+  {type:'node',id:389,lat:47.3800,lon:8.5300,tags:{nameZh:'林德特巧克力博物馆',name:'Lindt Home of Chocolate',tourism:'museum',website:'https://www.lindt-home-of-chocolate.com','addr:city':'Kilchberg',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'14218'}},
+  {type:'node',id:390,lat:46.4700,lon:6.8400,tags:{nameZh:'卡耶巧克力工厂',name:'Cailler Chocolate Factory',tourism:'museum',website:'https://www.cailler.ch','addr:city':'Broc',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'11247'}},
+  {type:'node',id:391,lat:46.5600,lon:7.9200,tags:{nameZh:'劳特布龙嫩施陶河瀑布',name:'Staubbach Falls',tourism:'attraction','addr:city':'Lauterbrunnen',rating:'4.5',reviews:'5842'}},
+  {type:'node',id:392,lat:47.6700,lon:8.6300,tags:{nameZh:'沙夫豪森穆诺特要塞',name:'Munot Schaffhausen',historic:'fort','addr:city':'Schaffhausen',opening_hours:'Mo-Su 08:00-20:00'}},
+  {type:'node',id:393,lat:46.5100,lon:9.8400,tags:{nameZh:'圣莫里茨恩加丁博物馆',name:'Engadiner Museum',tourism:'museum','addr:city':'St. Moritz',opening_hours:'Tu-Su 10:00-17:00'}},
+  {type:'node',id:394,lat:46.5500,lon:7.9000,tags:{nameZh:'格林德瓦冰川峡谷',name:'Gletscherschlucht Grindelwald',tourism:'attraction',website:'https://www.gletscherschlucht.ch','addr:city':'Grindelwald',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.4',reviews:'3218'}},
+  {type:'node',id:395,lat:46.7000,lon:9.8000,tags:{nameZh:'达沃斯基尔希纳博物馆',name:'Kirchner Museum Davos',tourism:'museum',website:'https://www.kirchnermuseum.ch','addr:city':'Davos',opening_hours:'Tu-Su 10:00-18:00'}},
+  {type:'node',id:396,lat:47.2200,lon:7.3600,tags:{nameZh:'比尔计时博物馆',name:'MIH - Musée International d\'Horlogerie',tourism:'museum','addr:city':'La Chaux-de-Fonds',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2847'}},
+  {type:'node',id:397,lat:46.9800,lon:6.8600,tags:{nameZh:'纳沙泰尔城堡',name:'Château de Neuchâtel',historic:'castle','addr:city':'Neuchâtel',opening_hours:'Mo-Su 08:00-18:00'}},
+  {type:'node',id:398,lat:47.0500,lon:8.3050,tags:{nameZh:'卢塞恩IMAX影院',name:'IMAX Verkehrshaus',amenity:'cinema',website:'https://www.verkehrshaus.ch','addr:city':'Lucerne',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:399,lat:46.8300,lon:6.9300,tags:{nameZh:'格吕耶尔HR吉格尔博物馆',name:'HR Giger Museum',tourism:'museum',website:'https://www.hrgigermuseum.com','addr:city':'Gruyères',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'3842'}},
+  {type:'node',id:400,lat:46.9500,lon:7.4400,tags:{nameZh:'伯尔尼玫瑰花园',name:'Rosengarten Bern',tourism:'attraction','addr:city':'Bern',rating:'4.5',reviews:'8924'}},
+  {type:'node',id:401,lat:46.2044,lon:6.1432,tags:{nameZh:'日内瓦联合国万国宫',name:'Palais des Nations',tourism:'attraction',website:'https://www.unog.ch','addr:city':'Geneva',opening_hours:'Mo-Fr 10:00-12:00, 14:00-16:00'}},
+  {type:'node',id:402,lat:47.0517,lon:8.3075,tags:{nameZh:'卢塞恩城墙',name:'Museggmauer Luzern',historic:'fort','addr:city':'Lucerne',opening_hours:'Mo-Su 08:00-19:00'}},
+  {type:'node',id:403,lat:46.6800,lon:8.0700,tags:{nameZh:'恩格尔贝格修道院',name:'Kloster Engelberg',historic:'monument','addr:city':'Engelberg',opening_hours:'Mo-Su 10:00-16:00'}},
+  {type:'node',id:404,lat:46.2700,lon:7.4400,tags:{nameZh:'锡永城堡',name:'Château de Tourbillon',historic:'castle','addr:city':'Sion'}},
+  {type:'node',id:405,lat:47.3750,lon:8.5410,tags:{nameZh:'苏黎世动物博物馆',name:'Zoologisches Museum Zürich',tourism:'museum','addr:city':'Zürich',opening_hours:'Tu-Su 09:00-17:00'}},
+  {type:'node',id:406,lat:46.5500,lon:6.6700,tags:{nameZh:'洛桑奥林匹克博物馆公园',name:'Parc Olympique Lausanne',tourism:'attraction','addr:city':'Lausanne'}},
+  {type:'node',id:407,lat:47.5600,lon:7.5800,tags:{nameZh:'巴塞尔丁格利博物馆',name:'Museum Tinguely',tourism:'museum',website:'https://www.tinguely.ch','addr:city':'Basel',opening_hours:'Tu-Su 11:00-18:00',rating:'4.4',reviews:'5218'}},
+  {type:'node',id:408,lat:46.5200,lon:6.6300,tags:{nameZh:'洛桑植物园',name:'Jardin Botanique Lausanne',tourism:'attraction','addr:city':'Lausanne',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:409,lat:46.9300,lon:7.4200,tags:{nameZh:'伯尔尼联邦宫',name:'Bundeshaus Bern',tourism:'attraction','addr:city':'Bern'}},
+  {type:'node',id:410,lat:47.3769,lon:8.5417,tags:{nameZh:'苏黎世大教堂',name:'Grossmünster Zürich',historic:'monument','addr:city':'Zürich',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:411,lat:47.3800,lon:8.5300,tags:{nameZh:'苏黎世科技馆',name:'focusTerra ETH Zürich',tourism:'museum','addr:city':'Zürich',opening_hours:'Tu-Su 10:00-17:00'}},
+  {type:'node',id:412,lat:47.5500,lon:7.5900,tags:{nameZh:'巴塞尔玩具世界博物馆',name:'Spielzeug Welten Museum Basel',tourism:'museum',website:'https://www.spielzeug-welten-museum-basel.ch','addr:city':'Basel',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'2218'}},
+  {type:'node',id:413,lat:46.7700,lon:6.6300,tags:{nameZh:'伊韦尔东温泉城',name:'Yverdon-les-Bains Centre Ville',tourism:'attraction','addr:city':'Yverdon-les-Bains'}},
+  {type:'node',id:414,lat:47.6800,lon:8.6300,tags:{nameZh:'沙夫豪森莱茵河畔',name:'Rheinfall Erlebnis',tourism:'attraction','addr:city':'Schaffhausen'}},
+  {type:'node',id:415,lat:46.2100,lon:6.1400,tags:{nameZh:'日内瓦红十字博物馆',name:'Musée International de la Croix-Rouge',tourism:'museum',website:'https://www.redcrossmuseum.ch','addr:city':'Geneva',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'4842'}},
+  {type:'node',id:416,lat:47.3769,lon:8.5417,tags:{nameZh:'苏黎世电车博物馆',name:'Tram Museum Zürich',tourism:'museum','addr:city':'Zürich',opening_hours:'Sa-Su 13:00-17:00'}},
+  {type:'node',id:417,lat:46.6800,lon:8.0500,tags:{nameZh:'恩格尔贝格乳酪厂',name:'Schaukäserei Engelberg',tourism:'museum','addr:city':'Engelberg',opening_hours:'Mo-Su 09:00-17:00'}},
+  {type:'node',id:418,lat:46.4500,lon:6.2000,tags:{nameZh:'尼翁罗马博物馆',name:'Musée Romain Nyon',tourism:'museum','addr:city':'Nyon',opening_hours:'Tu-Su 10:00-17:00'}},
+];
+
+// -- CORE ENGINE (same as Germany template) --
+function translateHours(str){if(!str||LANG.current!=='zh')return str;return str.replace(/\bMo\b/g,'周一').replace(/\bTu\b/g,'周二').replace(/\bWe\b/g,'周三').replace(/\bTh\b/g,'周四').replace(/\bFr\b/g,'周五').replace(/\bSa\b/g,'周六').replace(/\bSu\b/g,'周日').replace(/\bMar\b/g,'3月').replace(/\bApr\b/g,'4月').replace(/\bMay\b/g,'5月').replace(/\bJun\b/g,'6月').replace(/\bJul\b/g,'7月').replace(/\bAug\b/g,'8月').replace(/\bSep\b/g,'9月').replace(/\bOct\b/g,'10月').replace(/\bNov\b/g,'11月').replace(/\bDec\b/g,'12月').replace(/\bJan\b/g,'1月').replace(/\bFeb\b/g,'2月').replace(/\(seasonal\)/g,'(季节性开放)').replace(/closed/gi,'休息').replace(/daily/gi,'每天');}
+function getCategoryForVenue(tags){for(const cat of CATEGORIES){for(const[key,vals]of Object.entries(cat.tags)){const val=tags[key];if(val&&vals.includes(val))return cat;}}if(tags.man_made==='windmill')return CATEGORIES.find(c=>c.id==='historic');if(tags.historic)return CATEGORIES.find(c=>c.id==='historic');if(tags.natural==='beach')return CATEGORIES.find(c=>c.id==='beach');if(tags.tourism==='visitor_centre')return CATEGORIES.find(c=>c.id==='visitor');if(tags.amenity==='arts_centre')return CATEGORIES.find(c=>c.id==='theatre');if(tags.amenity==='cinema')return CATEGORIES.find(c=>c.id==='theatre');return CATEGORIES[CATEGORIES.length-1];}
+function getCategoryById(id){return CATEGORIES.find(c=>c.id===id)||CATEGORIES[CATEGORIES.length-1];}
+let state={allVenues:[],filtered:[],displayed:0,activeCategory:null,activeCardId:null,currentRegion:'',markers:new Map(),favorites:JSON.parse(localStorage.getItem('ch-kids-explorer-favorites')||'[]'),showFavoritesOnly:false,userLocation:null,userLocationMarker:null};
+const PAGE_SIZE=30;
+const map=L.map('map',{zoomControl:true}).setView([46.8,8.2],8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19}).addTo(map);
+const markersLayer=L.markerClusterGroup({maxClusterRadius:45,spiderfyOnMaxZoom:true,showCoverageOnHover:false,zoomToBoundsOnClick:true,disableClusteringAtZoom:14,chunkedLoading:true,chunkInterval:100,chunkDelay:10}).addTo(map);
+
+function buildFilterBar(){const bar=document.getElementById('filterBar');const label=document.getElementById('filterLabel');bar.innerHTML='';bar.appendChild(label);label.textContent=T[LANG.current].filterLabel;const catCounts={};state.allVenues.forEach(v=>{catCounts[v.category.id]=(catCounts[v.category.id]||0)+1;});const totalCount=state.allVenues.length;const favCount=state.favorites.length;const favChip=document.createElement('button');favChip.className='filter-chip'+(state.showFavoritesOnly?' active':'');if(state.showFavoritesOnly){favChip.style.background='#E05A1E';favChip.style.borderColor='#E05A1E';}favChip.innerHTML=`❤️ ${T[LANG.current].favoritesLabel}${favCount>0?` <span class="filter-chip-count">${favCount}</span>`:''}`;favChip.onclick=()=>toggleFavoritesFilter();bar.appendChild(favChip);const allChip=document.createElement('button');allChip.className='filter-chip'+(!state.showFavoritesOnly&&state.activeCategory===null?' active':'');allChip.style.background=!state.showFavoritesOnly&&state.activeCategory===null?'#1A2B4A':'';allChip.style.borderColor=!state.showFavoritesOnly&&state.activeCategory===null?'#1A2B4A':'';allChip.innerHTML=totalCount>0?`${T[LANG.current].allLabel} <span class="filter-chip-count">${totalCount}</span>`:T[LANG.current].allLabel;allChip.onclick=()=>setFilter(null);bar.appendChild(allChip);CATEGORIES.forEach(cat=>{const count=catCounts[cat.id]||0;const chip=document.createElement('button');const isActive=!state.showFavoritesOnly&&state.activeCategory===cat.id;chip.className='filter-chip'+(isActive?' active':'')+(totalCount>0&&count===0?' no-data':'');if(isActive){chip.style.background=cat.color;chip.style.borderColor=cat.color;}const countBadge=totalCount>0?` <span class="filter-chip-count">${count}</span>`:'';chip.innerHTML=`${cat.emoji} ${cat[LANG.current]||cat.en}${countBadge}`;chip.onclick=()=>setFilter(cat.id);bar.appendChild(chip);});if(typeof buildAgeFilterPills==='function')buildAgeFilterPills();}
+
+function setFilter(catId){state.activeCategory=catId;state.showFavoritesOnly=false;state.displayed=0;if(state.allVenues.length===0){buildFilterBar();const cat=catId?CATEGORIES.find(c=>c.id===catId):null;const catName=cat?(cat[LANG.current]||cat.en):'';if(catId&&cat){document.getElementById('emptyTitle').textContent=T[LANG.current].browseCategory(catName);document.getElementById('emptyDesc').textContent=T[LANG.current].browseCategoryDesc;}else{updateEmptyStateText();}searchInput.focus();return;}applyFilter();buildFilterBar();}
+
+function applyFilter(){let list=state.activeCategory?state.allVenues.filter(v=>v.category.id===state.activeCategory):[...state.allVenues];if(state.showFavoritesOnly){list=list.filter(v=>state.favorites.includes(v.id));}if(typeof activeAgeFilter!=='undefined'&&activeAgeFilter!=='all'){const ageRange=typeof AGE_FILTER_RANGES!=='undefined'?AGE_FILTER_RANGES.find(a=>a.id===activeAgeFilter):null;if(ageRange&&ageRange.categories){list=list.filter(v=>ageRange.categories.includes(v.category.id));}}if(state.userLocation){list.forEach(v=>{v._userDist=haversine(state.userLocation[0],state.userLocation[1],v.lat,v.lon);});list.sort((a,b)=>a._userDist-b._userDist);}state.filtered=list;renderList();renderMarkers();}
+
+const searchInput=document.getElementById('searchInput');const autocompleteEl=document.getElementById('autocomplete');let focusedIdx=-1;
+searchInput.addEventListener('input',()=>{const q=searchInput.value.trim().toLowerCase();if(!q){autocompleteEl.classList.remove('open');return;}const regionMatches=CH_REGIONS.filter(r=>r.name.toLowerCase().includes(q)||(r.nameZh&&r.nameZh.includes(q))).slice(0,5);const staticVenueMatches=STATIC_CH_VENUES.filter(v=>v.tags.name&&v.tags.name.toLowerCase().includes(q)).map(v=>({name:v.tags.name,type:'venue',lat:v.lat,lon:v.lon,emoji:getCategoryForVenue(v.tags).emoji,catLabel:getCategoryForVenue(v.tags)[LANG.current]||getCategoryForVenue(v.tags).en,city:v.tags['addr:city']||'',id:`${v.type}/${v.id}`}));const loadedVenueMatches=(state.allVenues.length>0?state.allVenues:[]).filter(v=>v.name.toLowerCase().includes(q)&&!staticVenueMatches.find(s=>s.name===v.name)).map(v=>({name:v.name,type:'venue',lat:v.lat,lon:v.lon,emoji:v.category.emoji,catLabel:v.category[LANG.current]||v.category.en,city:v.address?v.address.split(',').pop().trim():'',id:v.id}));const allVenueMatches=[...staticVenueMatches,...loadedVenueMatches].slice(0,5);renderAutocomplete(regionMatches,q,allVenueMatches);});
+
+searchInput.addEventListener('keydown',e=>{const items=autocompleteEl.querySelectorAll('.autocomplete-item');if(e.key==='ArrowDown'){e.preventDefault();focusedIdx=Math.min(focusedIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('focused',i===focusedIdx));}else if(e.key==='ArrowUp'){e.preventDefault();focusedIdx=Math.max(focusedIdx-1,0);items.forEach((el,i)=>el.classList.toggle('focused',i===focusedIdx));}else if(e.key==='Enter'){e.preventDefault();if(focusedIdx>=0&&items[focusedIdx]){items[focusedIdx].click();}else if(searchInput.value.trim()){searchRegion(searchInput.value.trim());}}else if(e.key==='Escape'){autocompleteEl.classList.remove('open');}});
+document.addEventListener('click',e=>{if(!e.target.closest('.header-search'))autocompleteEl.classList.remove('open');});
+
+function escapeHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+function renderAutocomplete(regionMatches,q,venueMatches){focusedIdx=-1;venueMatches=venueMatches||[];if(!regionMatches.length&&!venueMatches.length){autocompleteEl.classList.remove('open');return;}const safeQ=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');let html='';if(venueMatches.length>0){html+=`<div class="autocomplete-section-label">${T[LANG.current].venuesSection}</div>`;html+=venueMatches.map(v=>{const safeName=escapeHtml(v.name);const highlighted=safeName.replace(new RegExp(`(${safeQ})`,'gi'),'<strong style="color:var(--primary)">$1</strong>');return`<div class="autocomplete-item" onclick="searchVenueFromAutocomplete(${v.lat},${v.lon},'${v.id.replace(/'/g,"\\'")}','${v.name.replace(/'/g,"\\'")}')"><span class="venue-emoji">${v.emoji}</span><span>${highlighted}<span class="venue-result-detail"> &middot; ${v.city}</span></span><span class="region-type">${v.catLabel}</span></div>`;}).join('');}if(regionMatches.length>0){html+=`<div class="autocomplete-section-label">${T[LANG.current].regionsSection}</div>`;html+=regionMatches.map(r=>{const safeName=escapeHtml(r.name);const highlighted=safeName.replace(new RegExp(`(${safeQ})`,'gi'),'<strong style="color:var(--primary)">$1</strong>');const zhLabel=r.nameZh?` ${r.nameZh}`:'';const escapedName=r.name.replace(/'/g,"\\'").replace(/[<>"]/g,'');return`<div class="autocomplete-item" onclick="searchRegion('${escapedName}')"><span>${highlighted}${zhLabel}</span><span class="region-type">${r.type==='province'?'Canton 州':'City 城市'}</span></div>`;}).join('');}autocompleteEl.innerHTML=html;autocompleteEl.classList.add('open');}
+
+function clearSearch(){searchInput.value='';autocompleteEl.classList.remove('open');searchInput.focus();fullReset();}
+function resetHome(){searchInput.value='';autocompleteEl.classList.remove('open');state.activeCategory=null;state.activeCardId=null;state.showFavoritesOnly=false;state.displayed=0;if(typeof activeAgeFilter!=='undefined')activeAgeFilter='all';markersLayer.clearLayers();state.markers.clear();map.setView([46.8,8.2],8);showOverlay(false);if(typeof closeDetailPanel==='function')closeDetailPanel();loadStaticVenues();}
+function fullReset(){state.allVenues=[];state.filtered=[];state.displayed=0;state.activeCategory=null;state.activeCardId=null;state.currentRegion='';state.showFavoritesOnly=false;if(typeof activeAgeFilter!=='undefined')activeAgeFilter='all';markersLayer.clearLayers();state.markers.clear();searchInput.value='';autocompleteEl.classList.remove('open');map.setView([46.8,8.2],8);showOverlay(false);document.getElementById('resultCountText').textContent=T[LANG.current].resultLabel;document.getElementById('emptyState').style.display='flex';document.getElementById('venueList').style.display='none';document.getElementById('venueList').innerHTML='';document.getElementById('categorySummary').innerHTML='';closeDetailPanel();updateEmptyStateText();buildFilterBar();}
+
+function showToast(message,duration=3000){const toast=document.getElementById('toast');toast.textContent=message;toast.classList.add('show');clearTimeout(toast._timer);toast._timer=setTimeout(()=>toast.classList.remove('show'),duration);}
+const scrollTopBtn=document.getElementById('scrollTopBtn');document.getElementById('venueList').addEventListener('scroll',function(){scrollTopBtn.classList.toggle('visible',this.scrollTop>200);});scrollTopBtn.addEventListener('click',()=>{document.getElementById('venueList').scrollTo({top:0,behavior:'smooth'});});
+
+async function searchRegion(name){searchInput.value=name;autocompleteEl.classList.remove('open');state.currentRegion=name;showOverlay(true);document.getElementById('resultCountText').innerHTML=T[LANG.current].searching;try{const nominatimUrl=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name+' Switzerland')}&format=json&limit=1&addressdetails=1`;const geoRes=await fetch(nominatimUrl);const geoData=await geoRes.json();if(!geoData.length){showToast(T[LANG.current].regionNotFound);showOverlay(false);return;}const place=geoData[0];const[s,n,w,e]=place.boundingbox.map(Number);const bbox=`${s},${w},${n},${e}`;map.fitBounds([[s,w],[n,e]],{padding:[20,20]});const overpassQuery=buildOverpassQuery(bbox);const osmData=await fetchOverpass(overpassQuery);processOSMData(osmData.elements);showOverlay(false);}catch(err){console.error('Search error:',err);showOverlay(false);document.getElementById('resultCountText').innerHTML=`&#9888;&#65039; Error: ${err.message||err}`;}}
+
+const OVERPASS_ENDPOINTS=['https://overpass.kumi.systems/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://overpass-api.de/api/interpreter'];
+function buildOverpassQuery(bbox){return`[out:json][timeout:60];\n(\n  node["name"]["tourism"~"museum|gallery|aquarium|zoo|theme_park|attraction|visitor_centre"](${bbox});\n  node["name"]["leisure"~"playground|water_park|ice_rink|miniature_golf|nature_reserve|marina"](${bbox});\n  node["name"]["amenity"~"theatre|cinema"](${bbox});\n  node["name"]["natural"="beach"](${bbox});\n  node["name"]["historic"~"castle|ruins|monument|fort|mill"](${bbox});\n  way["name"]["tourism"~"museum|gallery|aquarium|zoo|theme_park|attraction|visitor_centre"](${bbox});\n  way["name"]["leisure"~"playground|water_park|nature_reserve"](${bbox});\n  way["name"]["amenity"~"theatre|cinema"](${bbox});\n  way["name"]["natural"="beach"](${bbox});\n  way["name"]["historic"~"castle|ruins|fort|mill"](${bbox});\n  relation["name"]["tourism"~"museum|zoo|theme_park"](${bbox});\n  relation["name"]["leisure"="nature_reserve"](${bbox});\n);\nout center;`;}
+
+const CH_BBOX='45.82,5.96,47.81,10.49';
+function buildCategoryQuery(catId,bbox){const cat=CATEGORIES.find(c=>c.id===catId);if(!cat)return buildOverpassQuery(bbox);const stmts=[];Object.entries(cat.tags).forEach(([key,vals])=>{const op=vals.length===1?'=':'~';const val=vals.join('|');['node','way','relation'].forEach(t=>stmts.push(`  ${t}["name"]["${key}"${op}"${val}"](${bbox});`));});return`[out:json][timeout:90];\n(\n${stmts.join('\n')}\n);\nout center;`;}
+
+async function fetchOverpass(query){let lastErr;for(let i=0;i<OVERPASS_ENDPOINTS.length;i++){const url=OVERPASS_ENDPOINTS[i]+'?data='+encodeURIComponent(query);const controller=new AbortController();const tid=setTimeout(()=>controller.abort(),35000);try{const res=await fetch(url,{signal:controller.signal});clearTimeout(tid);if(res.ok){const json=await res.json();if(json.remark&&/timed out|timeout/i.test(json.remark)){lastErr=new Error('Server timeout');continue;}return json;}lastErr=new Error(`HTTP ${res.status}`);}catch(e){clearTimeout(tid);lastErr=e;}}throw lastErr||new Error('All Overpass endpoints failed');}
+
+function formatRating(venue){if(!venue.rating)return null;const r=parseFloat(venue.rating);const fullStars=Math.floor(r);const rem=r%1;const halfStar=rem>=0.25&&rem<0.75;const stars='\u2605'.repeat(fullStars)+(halfStar?'\u00BD':(rem>=0.75?'\u2605':''));const count=parseInt(venue.reviews||'0');const countStr=count>=1000?(count/1000).toFixed(1)+'K':String(count);const countFull=count>=1000?count.toLocaleString():String(count);return{stars,rating:venue.rating,countShort:countStr,countFull};}
+function ratingCardHtml(venue){const r=formatRating(venue);if(!r)return'';return`<span class="venue-rating"><span class="rating-stars">\u2B50</span> <span class="rating-num">${r.rating}</span> <span class="rating-count">(${r.countShort})</span></span>`;}
+function ratingDetailHtml(venue){const r=formatRating(venue);if(!r)return'';return`<div class="detail-rating"><span class="detail-rating-stars">${r.stars}</span><span class="detail-rating-num">${r.rating}</span><span class="detail-rating-sep">\u00B7</span><span class="detail-rating-count">${r.countFull} reviews</span></div>`;}
+function applySortOrder(mode){state.sortMode=mode;const list=state.filtered;if(mode==='rating'){list.sort((a,b)=>{const ra=parseFloat(a.rating||'0');const rb=parseFloat(b.rating||'0');if(rb!==ra)return rb-ra;return(parseInt(b.reviews||'0'))-(parseInt(a.reviews||'0'));});}else if(mode==='name'){list.sort((a,b)=>a.name.localeCompare(b.name));}else if(mode==='distance'&&state.userLocation){list.sort((a,b)=>(a._userDist||9999)-(b._userDist||9999));}else{const orderMap=new Map();state.allVenues.forEach((v,i)=>orderMap.set(v.id,i));list.sort((a,b)=>(orderMap.get(a.id)||0)-(orderMap.get(b.id)||0));}state.displayed=0;renderList();}
+
+function processOSMData(elements){const venues=[];const seen=new Set();for(const el of elements){const tags=el.tags||{};const name=tags.name||tags['name:de']||tags['name:en']||tags['name:fr'];if(!name)continue;const lat=el.lat??el.center?.lat;const lon=el.lon??el.center?.lon;if(!lat||!lon)continue;const key=`${name.toLowerCase()}-${Math.round(lat*1000)}-${Math.round(lon*1000)}`;if(seen.has(key))continue;seen.add(key);const cat=getCategoryForVenue(tags);const rawWebsite=tags.website||tags['contact:website']||tags['url']||'';const website=rawWebsite?(rawWebsite.startsWith('http')?rawWebsite:'https://'+rawWebsite):'';const city=tags['addr:city']||tags['addr:town']||tags['addr:village']||'';const street=[tags['addr:street'],tags['addr:housenumber']].filter(Boolean).join(' ');const address=[street,city].filter(Boolean).join(', ');venues.push({id:`${el.type}/${el.id}`,name,nameZh:tags['name:zh']||tags['name:zh-Hans']||tags.nameZh||'',lat,lon,category:cat,website,address,phone:tags.phone||tags['contact:phone']||'',openingHours:tags.opening_hours||'',rating:tags.rating||'',reviews:tags.reviews||'',osmType:el.type,osmId:el.id});}venues.sort((a,b)=>{if(a.category.id!=='attraction'&&b.category.id==='attraction')return-1;if(a.category.id==='attraction'&&b.category.id!=='attraction')return 1;return a.name.localeCompare(b.name);});state.allVenues=venues;state.displayed=0;applyFilter();buildFilterBar();document.getElementById('resultCountText').innerHTML=venues.length?T[LANG.current].found(venues.length,state.currentRegion):T[LANG.current].notFound;const sortCtrl=document.getElementById('sortControl');if(sortCtrl){sortCtrl.style.display=venues.length?'inline-flex':'none';const sortSel=document.getElementById('sortSelect');if(sortSel)sortSel.value='default';}state.sortMode='default';renderCategorySummary();}
+
+function renderList(){const list=document.getElementById('venueList');const empty=document.getElementById('emptyState');if(state.allVenues.length===0){empty.style.display='flex';list.style.display='none';updateEmptyStateText();if(state.activeCategory){const cat=CATEGORIES.find(c=>c.id===state.activeCategory);const catName=cat?(cat[LANG.current]||cat.en):'';document.getElementById('emptyTitle').textContent=T[LANG.current].searchRegionFirst;document.getElementById('emptyDesc').textContent=T[LANG.current].searchRegionFirstDesc(catName);}return;}if(state.filtered.length===0){empty.style.display='flex';list.style.display='none';const cat=CATEGORIES.find(c=>c.id===state.activeCategory);const catName=cat?(cat[LANG.current]||cat.en):'';document.getElementById('emptyTitle').textContent=T[LANG.current].noInRegion(catName,state.currentRegion);document.getElementById('emptyDesc').textContent=T[LANG.current].tryOtherCategory;return;}empty.style.display='none';list.style.display='flex';const toShow=state.filtered.slice(0,state.displayed+PAGE_SIZE);state.displayed=toShow.length;const frag=document.createDocumentFragment();toShow.forEach(v=>{const card=document.createElement('div');card.className='venue-card'+(v.id===state.activeCardId?' active':'');card.id='card-'+v.id.replace(/[^a-z0-9]/gi,'-');const isFav=state.favorites.includes(v.id);const distHtml=v._userDist!=null?`<span class="venue-distance">📍 ${v._userDist.toFixed(1)} km</span>`:'';card.innerHTML=`<button class="venue-fav-btn ${isFav?'favorited':''}" onclick="event.stopPropagation(); toggleFavorite('${v.id.replace(/'/g,"\\'")}', this)" title="${isFav?'Remove favorite':'Add favorite'}">${isFav?'❤️':'♡'}</button><div class="venue-card-top"><div class="venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div><div class="venue-info"><div class="venue-name">${v.name}</div>${v.nameZh?`<div class="venue-name-zh">${v.nameZh}</div>`:''}${ratingCardHtml(v)}<div class="venue-meta"><span class="venue-tag" style="background:${v.category.bg};color:${v.category.color}">${v.category[LANG.current]||v.category.en}</span>${distHtml}${v.address?`<span class="venue-address"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 10 C2 7 0.5 5.5 0.5 4a4.5 4.5 0 019 0c0 1.5-1.5 3-4.5 6z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>${v.address}</span>`:''}</div>${v.openingHours?`<div class="venue-detail-row">\u{1F552} ${translateHours(v.openingHours)}</div>`:''}${v.phone?`<div class="venue-detail-row">\u{1F4DE} <a href="tel:${v.phone}">${v.phone}</a></div>`:''}</div></div><div class="venue-actions">${v.website?`<a class="btn-website" href="${v.website}" target="_blank" rel="noopener">${T[LANG.current].website}</a>`:`<span class="btn-website" style="opacity:.45;cursor:default">${T[LANG.current].noWebsite}</span>`}<a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">${T[LANG.current].navigate}</a><button class="btn-map" onclick="flyToVenue('${v.id}')">${T[LANG.current].flyTo}</button></div>`;card.addEventListener('click',e=>{if(e.target.closest('a,button'))return;selectVenue(v.id);});frag.appendChild(card);});list.innerHTML='';list.appendChild(frag);if(state.displayed<state.filtered.length){const btn=document.createElement('button');btn.className='load-more-btn';btn.textContent=`${T[LANG.current].loadMore} (${state.filtered.length-state.displayed} more)`;btn.onclick=()=>{renderList();};list.appendChild(btn);}}
+
+function renderCategorySummary(){const el=document.getElementById('categorySummary');if(!state.allVenues.length){el.innerHTML='';return;}const counts={};state.allVenues.forEach(v=>{counts[v.category.id]=(counts[v.category.id]||0)+1;});el.innerHTML=CATEGORIES.filter(cat=>counts[cat.id]).map(cat=>`<span class="category-summary-chip" style="background:${cat.bg};color:${cat.color}">${cat.emoji} ${counts[cat.id]}</span>`).join('');}
+function updateEmptyStateText(){document.getElementById('emptyTitle').textContent=T[LANG.current].emptyTitle;document.getElementById('emptyDesc').textContent=T[LANG.current].emptyDesc;}
+
+const _iconCache={};function getIcon(cat){if(!_iconCache[cat.id]){_iconCache[cat.id]=L.divIcon({html:`<div class="map-marker" style="background:${cat.color}"><div class="map-marker-inner">${cat.emoji}</div></div>`,className:'',iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-36]});}return _iconCache[cat.id];}
+function renderMarkers(){markersLayer.clearLayers();state.markers.clear();const batch=[];state.filtered.forEach(v=>{const marker=L.marker([v.lat,v.lon],{icon:getIcon(v.category)});marker.bindPopup(()=>buildPopup(v),{maxWidth:280,minWidth:260});marker.on('click',()=>selectVenue(v.id));state.markers.set(v.id,marker);batch.push(marker);});markersLayer.addLayers(batch);}
+function buildPopup(v){return`<div class="popup-content"><div class="popup-header"><div class="popup-icon" style="background:${v.category.bg}">${v.category.emoji}</div><div><div class="popup-name">${v.name}</div>${v.nameZh?`<div class="popup-name-zh">${v.nameZh}</div>`:''}</div></div>${v.address?`<div class="popup-address">\u{1F4CD} ${v.address}</div>`:''}${v.openingHours?`<div class="popup-address">\u{1F552} ${translateHours(v.openingHours)}</div>`:''}${v.phone?`<div class="popup-address">\u{1F4DE} <a href="tel:${v.phone}" style="color:var(--primary);text-decoration:none">${v.phone}</a></div>`:''}<div style="display:flex;gap:6px">${v.website?`<a class="popup-website" href="${v.website}" target="_blank" rel="noopener" style="flex:1">${T[LANG.current].website}</a>`:''}<a class="popup-website" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener" style="flex:1;background:#4285F4">${T[LANG.current].navigate}</a></div></div>`;}
+
+function selectVenue(id){state.activeCardId=id;document.querySelectorAll('.venue-card').forEach(c=>c.classList.remove('active'));const cardEl=document.getElementById('card-'+id.replace(/[^a-z0-9]/gi,'-'));if(cardEl){cardEl.classList.add('active');cardEl.scrollIntoView({behavior:'smooth',block:'nearest'});}const marker=state.markers.get(id);if(marker){marker.openPopup();}}
+function flyToVenue(id){const v=state.allVenues.find(x=>x.id===id);if(!v)return;map.flyTo([v.lat,v.lon],16,{duration:1});selectVenue(id);}
+function showOverlay(show){const overlay=document.getElementById('mapOverlay');document.getElementById('loadingText').textContent=T[LANG.current].loadingVenues;document.getElementById('loadingHint').textContent=show?T[LANG.current].loadingHint:'';overlay.classList.toggle('hidden',!show);}
+
+function setLang(lang){LANG.current=lang;document.querySelectorAll('.lang-btn').forEach(b=>{b.classList.toggle('active',b.dataset.lang===lang);});document.getElementById('searchInput').placeholder=T[lang].searchPlaceholder;updateEmptyStateText();buildFilterBar();if(state.allVenues.length){document.getElementById('resultCountText').innerHTML=T[lang].found(state.filtered.length,state.currentRegion);renderList();renderMarkers();renderCategorySummary();}else{document.getElementById('resultCountText').textContent=T[lang].resultLabel;}const wb=document.getElementById('weatherBanner');if(wb&&wb.style.display!=='none'){document.getElementById('weatherBannerText').textContent=T[lang].weatherBannerText;document.getElementById('weatherBannerBtn').textContent=T[lang].weatherBannerBtn;}}
+
+function showSkeletons(){const list=document.getElementById('venueList');document.getElementById('emptyState').style.display='none';list.style.display='flex';list.innerHTML=Array(4).fill(0).map(()=>`<div class="skeleton-card"><div style="display:flex;gap:11px;align-items:center"><div class="skeleton" style="width:36px;height:36px;border-radius:50%;flex-shrink:0"></div><div style="flex:1"><div class="skeleton" style="height:12px;margin-bottom:8px;width:70%"></div><div class="skeleton" style="height:10px;width:45%"></div></div></div></div>`).join('');}
+const _origSearch=searchRegion;window.searchRegion=async(name)=>{showSkeletons();await _origSearch(name);};
+
+function loadStaticVenues(){state.currentRegion=T[LANG.current].featuredRegion;processOSMData(STATIC_CH_VENUES);}
+
+function haversine(lat1,lon1,lat2,lon2){const R=6371;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+
+// Chat
+const CITY_COORDS={zürich:[47.38,8.54],zurich:[47.38,8.54],bern:[46.95,7.45],geneva:[46.20,6.14],genève:[46.20,6.14],basel:[47.56,7.59],lausanne:[46.52,6.63],lucerne:[47.05,8.31],luzern:[47.05,8.31],interlaken:[46.69,7.87],zermatt:[46.02,7.75],'st. moritz':[46.50,9.84],montreux:[46.43,6.91],lugano:[46.00,8.95],davos:[46.80,9.84],grindelwald:[46.62,8.04],thun:[46.76,7.63],winterthur:[47.50,8.72],苏黎世:[47.38,8.54],伯尔尼:[46.95,7.45],日内瓦:[46.20,6.14],巴塞尔:[47.56,7.59],洛桑:[46.52,6.63],卢塞恩:[47.05,8.31],因特拉肯:[46.69,7.87],采尔马特:[46.02,7.75],圣莫里茨:[46.50,9.84],蒙特勒:[46.43,6.91],卢加诺:[46.00,8.95],达沃斯:[46.80,9.84],格林德瓦:[46.62,8.04],图恩:[46.76,7.63],温特图尔:[47.50,8.72]};
+const INTEREST_MAP={'动物':['zoo','children_farm'],'动物园':['zoo'],'农场':['children_farm'],'博物馆':['museum'],'科学':['museum'],'游乐园':['theme_park'],'主题公园':['theme_park'],'室内':['indoor_playground','museum','aquarium'],'下雨':['indoor_playground','museum','aquarium'],'海滩':['beach'],'湖':['beach'],'游泳':['beach','sports'],'城堡':['historic'],'历史':['historic'],'自然':['nature'],'公园':['nature'],'森林':['nature'],'水族馆':['aquarium'],'滑冰':['sports'],'运动':['sports'],'剧院':['theatre'],'蹦床':['indoor_playground'],'中餐':['chinese_restaurant'],'自助餐':['buffet'],'巧克力':['museum'],'奶酪':['museum'],'chocolate':['museum'],'cheese':['museum'],'zoo':['zoo'],'farm':['children_farm'],'museum':['museum'],'indoor':['indoor_playground','museum','aquarium'],'rain':['indoor_playground','museum','aquarium'],'beach':['beach'],'lake':['beach'],'castle':['historic'],'nature':['nature'],'aquarium':['aquarium'],'sport':['sports'],'chinese':['chinese_restaurant'],'buffet':['buffet'],'mountain':['nature'],'ski':['sports','nature']};
+const AGE_HINTS={'婴儿':1,'宝宝':2,'1岁':1,'2岁':2,'3岁':3,'幼儿':3,'小朋友':5,'4岁':4,'5岁':5,'6岁':6,'7岁':7,'8岁':8,'9岁':9,'10岁':10,'学龄':7,'小学':8,'teenager':13,'toddler':2,'baby':1};
+
+function parseUserMessage(msg){const lower=msg.toLowerCase();const result={city:null,coords:null,categories:new Set(),age:null,maxDist:null,raw:msg};for(const[name,coords]of Object.entries(CITY_COORDS)){if(lower.includes(name.toLowerCase())){result.city=name;result.coords=coords;break;}}for(const[kw,cats]of Object.entries(INTEREST_MAP)){if(lower.includes(kw.toLowerCase())){cats.forEach(c=>result.categories.add(c));}}for(const[kw,age]of Object.entries(AGE_HINTS)){if(lower.includes(kw)){result.age=age;break;}}const distMatch=lower.match(/(\d+)\s*(km|公里|分钟|min)/);if(distMatch){const num=parseInt(distMatch[1]);result.maxDist=distMatch[2]==='分钟'||distMatch[2]==='min'?num*1.2:num;}return result;}
+
+function recommendVenues(parsed){let venues=[...STATIC_CH_VENUES].map(v=>{const tags=v.tags||{};const cat=getCategoryForVenue(tags);return{...v,_cat:cat,_name:tags.name,_city:tags['addr:city']||''};});if(parsed.categories.size>0){venues=venues.filter(v=>parsed.categories.has(v._cat.id));}if(parsed.coords){venues.forEach(v=>{v._dist=haversine(parsed.coords[0],parsed.coords[1],v.lat,v.lon);});if(parsed.maxDist){venues=venues.filter(v=>v._dist<=parsed.maxDist);}venues.sort((a,b)=>a._dist-b._dist);}else{venues.sort(()=>Math.random()-0.5);}if(parsed.age!==null){if(parsed.age<=3){const priority=['children_farm','indoor_playground','playground','zoo'];venues.sort((a,b)=>{const aP=priority.indexOf(a._cat.id);const bP=priority.indexOf(b._cat.id);if(aP>=0&&bP<0)return-1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});}else if(parsed.age>=8){const priority=['theme_park','sports','museum','historic'];venues.sort((a,b)=>{const aP=priority.indexOf(a._cat.id);const bP=priority.indexOf(b._cat.id);if(aP>=0&&bP<0)return-1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});}}return venues.slice(0,6);}
+
+function buildChatResponse(parsed,venues){const isZh=/[\u4e00-\u9fff]/.test(parsed.raw);const chatLang=isZh?'zh':'en';let parts=[];if(venues.length===0){return isZh?'抱歉，没有找到完全匹配的场地。试试换个关键词？':'Sorry, no exact matches found. Try different keywords?';}if(chatLang==='zh'){let opener='为你推荐以下场地';if(parsed.city)opener=`在 ${parsed.city} 附近为你推荐`;if(parsed.age)opener+=`（适合${parsed.age}岁孩子）`;opener+='：';parts.push(opener);}else{let opener='Here are my recommendations';if(parsed.city)opener=`Near ${parsed.city}, here are my picks`;if(parsed.age)opener+=` (for age ${parsed.age})`;opener+=':';parts.push(opener);}venues.forEach(v=>{const dist=v._dist?` (${v._dist.toFixed(1)}km)`:'';const catLabel=v._cat[chatLang]||v._cat.en;parts.push(`\n${v._cat.emoji} <strong>${v._name}</strong>${dist}\n<span style="color:var(--text-muted);font-size:11px">${catLabel} &middot; ${v._city}</span>`);});parts.push(chatLang==='zh'?'\n点击场地名称可在地图上查看位置。':'\nClick a venue name to see it on the map.');return parts.join('');}
+
+let chatOpen=false;
+function toggleChat(open){chatOpen=open;document.getElementById('chatPanel').classList.toggle('open',open);document.getElementById('chatFab').classList.toggle('hidden',open);if(open&&document.getElementById('chatMessages').children.length===0){initChat();}if(open)document.getElementById('chatInput').focus();}
+function initChat(){const greetings={en:"Hi! I'm your Switzerland family outing assistant.\n\nTell me:\n\u2022 Which city?\n\u2022 Kids' age?\n\u2022 Indoor or outdoor?\n\u2022 Interests (chocolate, mountains, lakes)?\n\nI'll recommend the best places!",zh:'你好！我是瑞士亲子出行助手。\n\n告诉我：\n\u2022 你在哪个城市？\n\u2022 孩子多大？\n\u2022 室内还是室外？\n\u2022 对什么感兴趣（巧克力、山、湖）？\n\n我会推荐最合适的去处！'};addBotMessage(greetings[LANG.current]||greetings.en);showQuickActions();}
+function showQuickActions(){const el=document.getElementById('chatQuickActions');const actions={en:[['🏠 Indoor Zürich','Indoor activities in Zürich for rainy day'],['🦁 Zoo near Bern','Zoo or farm near Bern for 3 year old'],['🏔️ Mountain trip','Mountain experience near Interlaken for kids'],['🍫 Chocolate factory','Chocolate factory visit for family']],zh:[['🏠 苏黎世室内玩','我在苏黎世，下雨天想找室内游乐场'],['🦁 带3岁宝宝看动物','我孩子3岁，想去看动物，在Bern附近'],['🏔️ 山区体验','带孩子去Interlaken附近山区体验'],['🍫 巧克力工厂','想带孩子参观巧克力工厂']]};const a=actions[LANG.current]||actions.en;el.innerHTML=a.map(([label,msg])=>`<button class="chat-quick-btn" onclick="sendQuickMsg('${msg.replace(/'/g,"\\'")}')">${label}</button>`).join('');}
+function sendQuickMsg(msg){document.getElementById('chatInput').value=msg;handleChatSend();}
+function addBotMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg bot';div.innerHTML=escapeHtml(text).replace(/\n/g,'<br>');el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function addUserMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg user';div.textContent=text;el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function showTyping(){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-typing';div.id='chatTyping';div.innerHTML='<span></span><span></span><span></span>';el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function removeTyping(){const t=document.getElementById('chatTyping');if(t)t.remove();}
+function handleChatSend(){const input=document.getElementById('chatInput');const msg=input.value.trim();if(!msg)return;addUserMessage(msg);input.value='';document.getElementById('chatQuickActions').innerHTML='';showTyping();setTimeout(()=>{removeTyping();const parsed=parseUserMessage(msg);const venues=recommendVenues(parsed);const response=buildChatResponse(parsed,venues);let venueChips='';if(venues.length>0){venueChips='<div style="margin-top:8px">'+venues.map(v=>`<span class="chat-venue-chip" onclick="chatShowVenue(${v.lat},${v.lon},'${v._name.replace(/'/g,"\\'")}')">${v._cat.emoji} ${v._name}</span>`).join('')+'</div>';}addBotMessage(response+venueChips);},600+Math.random()*400);}
+function chatShowVenue(lat,lon,name){map.flyTo([lat,lon],14,{duration:1});const v=state.allVenues.find(x=>x.name===name);if(v)selectVenue(v.id);if(window.innerWidth<=768)toggleChat(false);}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleChatSend();}});
+
+function toggleFavorite(venueId,btnEl){const idx=state.favorites.indexOf(venueId);if(idx>=0){state.favorites.splice(idx,1);if(btnEl){btnEl.classList.remove('favorited');btnEl.textContent='\u2661';}}else{state.favorites.push(venueId);if(btnEl){btnEl.classList.add('favorited');btnEl.textContent='\u2764\uFE0F';}}if(btnEl){btnEl.classList.remove('bounce');void btnEl.offsetWidth;btnEl.classList.add('bounce');}localStorage.setItem('ch-kids-explorer-favorites',JSON.stringify(state.favorites));buildFilterBar();if(state.showFavoritesOnly){state.displayed=0;applyFilter();}}
+function toggleFavoritesFilter(){state.showFavoritesOnly=!state.showFavoritesOnly;if(state.showFavoritesOnly){state.activeCategory=null;}state.displayed=0;applyFilter();buildFilterBar();}
+
+function searchVenueFromAutocomplete(lat,lon,venueId,venueName){autocompleteEl.classList.remove('open');searchInput.value=venueName;map.flyTo([lat,lon],16,{duration:1});const v=state.allVenues.find(x=>x.id===venueId);if(v){selectVenue(v.id);}else{L.popup().setLatLng([lat,lon]).setContent(`<div class="popup-content"><div class="popup-name">${escapeHtml(venueName)}</div></div>`).openOn(map);}}
+
+function activateNearMe(){autocompleteEl.classList.remove('open');const btn=document.getElementById('nearmeBtn');if(!navigator.geolocation){showToast(T[LANG.current].nearMeError);return;}btn.classList.add('active');showToast(T[LANG.current].nearMeSearching,2000);navigator.geolocation.getCurrentPosition((pos)=>{const lat=pos.coords.latitude;const lon=pos.coords.longitude;state.userLocation=[lat,lon];if(state.userLocationMarker){map.removeLayer(state.userLocationMarker);}state.userLocationMarker=L.circleMarker([lat,lon],{radius:10,color:'#4285F4',fillColor:'#4285F4',fillOpacity:0.5,weight:3,opacity:0.8}).addTo(map).bindPopup(T[LANG.current].yourLocation);state.displayed=0;applyFilter();buildFilterBar();map.flyTo([lat,lon],11,{duration:1});showToast(T[LANG.current].sortedByDistance,2000);},(err)=>{btn.classList.remove('active');if(err.code===1){showToast(T[LANG.current].nearMePermDenied,4000);}else{showToast(T[LANG.current].nearMeError);}},{enableHighAccuracy:true,timeout:10000});}
+
+(function initBottomSheet(){const sidebar=document.getElementById('sidebarSheet');const handle=document.getElementById('bottomSheetHandle');if(!handle)return;const SNAP_COLLAPSED=25;const SNAP_HALF=50;const SNAP_FULL=90;let sheetPos=SNAP_COLLAPSED;let startY=0,startPos=0,dragging=false;function isMobile(){return window.innerWidth<=768;}function setSheetPosition(pct){if(!isMobile()){sidebar.style.transform='';sidebar.style.height='';return;}sheetPos=pct;const h=Math.min(pct,90);sidebar.style.height=h+'dvh';sidebar.style.transform='translateY(0)';}handle.addEventListener('touchstart',(e)=>{if(!isMobile())return;dragging=true;startY=e.touches[0].clientY;startPos=sheetPos;sidebar.style.transition='none';},{passive:true});handle.addEventListener('touchmove',(e)=>{if(!dragging||!isMobile())return;const dy=startY-e.touches[0].clientY;const dvh=(dy/window.innerHeight)*100;const newPos=Math.max(10,Math.min(90,startPos+dvh));sidebar.style.height=newPos+'dvh';},{passive:true});handle.addEventListener('touchend',(e)=>{if(!dragging||!isMobile())return;dragging=false;sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const currentH=parseFloat(sidebar.style.height)||SNAP_COLLAPSED;const snaps=[SNAP_COLLAPSED,SNAP_HALF,SNAP_FULL];let closest=snaps[0];let minDist=Math.abs(currentH-snaps[0]);for(const s of snaps){const d=Math.abs(currentH-s);if(d<minDist){minDist=d;closest=s;}}setSheetPosition(closest);});function initMobileSheet(){if(isMobile()){sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';setSheetPosition(SNAP_COLLAPSED);}else{sidebar.style.transform='';sidebar.style.height='';sidebar.style.transition='';}}window.addEventListener('resize',initMobileSheet);initMobileSheet();})();
+
+function openDetailPanel(venueId){const v=state.allVenues.find(x=>x.id===venueId);if(!v)return;const panel=document.getElementById('venueDetailPanel');const body=document.getElementById('detailPanelBody');const titleEl=document.getElementById('detailPanelTitle');const t=T[LANG.current];titleEl.textContent=t.venueDetails;const isFav=state.favorites.includes(v.id);let html='';html+=`<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`;html+=`<div class="detail-venue-name">${escapeHtml(v.name)}</div>`;if(v.nameZh)html+=`<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;html+=`<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">${v.category.emoji} ${v.category[LANG.current]||v.category.en}</span>`;html+=ratingDetailHtml(v);if(v.address){html+=`<div class="detail-info-row"><span class="detail-icon">📍</span><span>${escapeHtml(v.address)}</span></div>`;}if(v.openingHours){html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F552}</span><span>${escapeHtml(translateHours(v.openingHours))}</span></div>`;}if(v.phone){html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F4DE}</span><a href="tel:${v.phone}">${escapeHtml(v.phone)}</a></div>`;}html+='<div class="detail-actions">';if(v.website){html+=`<a class="detail-btn detail-btn-website" href="${v.website}" target="_blank" rel="noopener">🔗 ${t.visitWebsite}</a>`;}html+=`<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">🧭 ${t.navigateTo}</a>`;html+=`<button class="detail-btn detail-btn-favorite ${isFav?'favorited':''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')">  ${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}</button>`;html+='</div>';body.innerHTML=html;panel.classList.add('open');}
+function closeDetailPanel(){document.getElementById('venueDetailPanel').classList.remove('open');}
+function toggleDetailFavorite(venueId){toggleFavorite(venueId,null);const btn=document.getElementById('detailFavBtn');const t=T[LANG.current];const isFav=state.favorites.includes(venueId);if(btn){btn.className='detail-btn detail-btn-favorite'+(isFav?' favorited':'');btn.innerHTML=`${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}`;}renderList();}
+const _origSelectVenue=selectVenue;window.selectVenue=function(id){_origSelectVenue(id);openDetailPanel(id);};
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeDetailPanel();});
+
+const AGE_FILTER_RANGES=[{id:'all',en:'All ages',zh:'所有年龄',de:'Alle Altersgruppen',fr:'Tous âges',emoji:'',categories:null},{id:'0-3',en:'0-3',zh:'0-3',de:'0-3 Jahre',fr:'0-3 ans',emoji:'👶',categories:['children_farm','playground','indoor_playground','beach','chinese_restaurant','buffet']},{id:'3-6',en:'3-6',zh:'3-6',de:'3-6 Jahre',fr:'3-6 ans',emoji:'🧒',categories:['children_farm','playground','indoor_playground','beach','chinese_restaurant','buffet','zoo','aquarium','theme_park','nature','museum']},{id:'6-12',en:'6-12',zh:'6-12',de:'6-12 Jahre',fr:'6-12 ans',emoji:'🧒',categories:null}];
+let activeAgeFilter='all';
+function setAgeFilter(ageId){activeAgeFilter=ageId;if(ageId!=='all'){state.activeCategory=null;state.showFavoritesOnly=false;}state.displayed=0;applyFilter();buildFilterBar();buildAgeFilterPills();}
+function buildAgeFilterPills(){const existing=document.getElementById('ageFilterGroup');if(existing)existing.remove();const bar=document.getElementById('filterBar');const group=document.createElement('div');group.className='age-filter-group';group.id='ageFilterGroup';AGE_FILTER_RANGES.forEach(age=>{const pill=document.createElement('button');pill.className='age-pill'+(activeAgeFilter===age.id?' active':'');const label=age[LANG.current]||age.en;pill.innerHTML=age.emoji?`${age.emoji} ${label}`:label;pill.onclick=()=>setAgeFilter(age.id);group.appendChild(pill);});bar.appendChild(group);}
+
+const INDOOR_CATEGORIES=['indoor_playground','museum','aquarium','theatre','buffet','chinese_restaurant','sports'];
+let weatherBannerDismissed=false;
+async function fetchWeather(){try{const res=await fetch('https://api.open-meteo.com/v1/forecast?latitude=47.37&longitude=8.54&current=temperature_2m,rain,weather_code');const data=await res.json();if(!data.current)return;const temp=Math.round(data.current.temperature_2m);const rain=data.current.rain||0;const code=data.current.weather_code||0;let emoji='\u2600\uFE0F';if(code>=61)emoji='🌧️';else if(code>=51)emoji='🌦️';else if(code>=45)emoji='🌫️';else if(code>=3)emoji='\u26C5';const badge=document.getElementById('weatherBadge');badge.innerHTML=`${emoji} ${temp}&deg;C`;badge.style.display='flex';if((rain>0||code>=61)&&!weatherBannerDismissed){const banner=document.getElementById('weatherBanner');document.getElementById('weatherBannerText').textContent=T[LANG.current].weatherBannerText;document.getElementById('weatherBannerBtn').textContent=T[LANG.current].weatherBannerBtn;banner.style.display='flex';}}catch(e){console.log('Weather fetch failed:',e.message);}}
+function filterIndoorWeather(){activeAgeFilter='all';state.showFavoritesOnly=false;state.activeCategory=null;state.displayed=0;let list=state.allVenues.filter(v=>INDOOR_CATEGORIES.includes(v.category.id));if(state.userLocation){list.forEach(v=>{v._userDist=haversine(state.userLocation[0],state.userLocation[1],v.lat,v.lon);});list.sort((a,b)=>a._userDist-b._userDist);}state.filtered=list;renderList();renderMarkers();buildFilterBar();buildAgeFilterPills();showToast(T[LANG.current].showingIndoor,2000);dismissWeatherBanner();}
+function dismissWeatherBanner(){weatherBannerDismissed=true;document.getElementById('weatherBanner').style.display='none';}
+
+buildFilterBar();buildAgeFilterPills();setLang('en');loadStaticVenues();fetchWeather();
+</script>
+</body>
+</html>
